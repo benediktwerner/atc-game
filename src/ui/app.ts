@@ -70,7 +70,7 @@ export class App {
     this.startedAt = Date.now();
     this.pausedMs = 0;
     this.pauseStartedAt = 0;
-    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div class="play"><div id="radar"></div><pre id="info"></pre></div><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
+    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><pre id="info"></pre><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
     this.board = this.root.querySelector('#board');
     this.gameShell = this.root.querySelector('#game-shell');
     this.radar = new Radar(this.root.querySelector('#radar')!, this.game.def);

@@ -342,7 +342,9 @@ appends ` ↑<n>` / ` ↓<n>`.
 ### 6.3 Input area
 
 Three rows: the echoed command with a block cursor, the `^` caret underlining a
-rejected token, and the message or `?` hint row.
+rejected token, and the message or `?` hint row. The board is a two-column grid — radar
+and info panel on top, input area bottom-left and the credit line `ATC - by Ed James`
+bottom-right, under the info panel.
 
 ### 6.4 Pause, game over and scores
 
@@ -356,8 +358,9 @@ table. Scores live in `localStorage` (keys `atc.scores.v1` and `atc.lastName.v1`
 keep the best `NUM_SCORES` entries and at most one entry per name+game, and are ranked
 by planes safe, then ticks, then lowest real time.
 
-Real-time durations are formatted as `<d>d+<hh>hrs`, `<h>:<mm>:<ss>`, `<m>:<ss>` or
-`:<ss>`, and as the empty string for zero.
+Real-time durations are formatted as `<d>d+<hh>hrs`, `<h>:<mm>:<ss>` or `<m>:<ss>`; the
+minute field is always present, so a sub-minute game shows `0:27` and a zero-length one
+shows `0:00`.
 
 ---
 
@@ -431,6 +434,9 @@ silently revert any of them.
   original showed only the current altitude, so a climb, a descent and a ground plane
   already cleared for take-off were indistinguishable from an idle plane.
 - Score-table semantics are simplified (§6.4).
+- Durations always include a minute field. The original's `timestr` omitted it below
+  one minute and rendered zero as an empty string, so a short game showed `:27` or
+  nothing at all.
 
 ### 8.4 Quirks deliberately preserved
 

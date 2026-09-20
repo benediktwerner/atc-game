@@ -30,6 +30,5 @@ export function timestr(seconds: number): string {
   if (days > 0) return `${days}d+${String(hours).padStart(2, '0')}hrs`;
   if (hours > 0)
     return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  if (minutes > 0) return `${minutes}:${String(secs).padStart(2, '0')}`;
-  return secs > 0 ? `:${String(secs).padStart(2, '0')}` : '';
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
 }

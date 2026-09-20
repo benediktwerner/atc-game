@@ -46,8 +46,10 @@ header {
 header button {
   margin-left: 0.5rem;
 }
-.play {
-  display: flex;
+#board {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  column-gap: 1ch;
   align-items: start;
 }
 .radar {
@@ -82,15 +84,22 @@ header button {
 #info {
   width: 24ch;
   height: calc(1.15em * 21);
-  margin: 0 0 0 1ch;
+  margin: 0;
   overflow-y: auto;
   white-space: pre;
 }
 #input {
+  grid-column: 1;
+  width: 0;
+  min-width: 100%;
   min-height: 3.45em;
   margin: 0.5rem 0 0;
+  white-space: pre-wrap;
 }
 aside {
+  grid-column: 2;
+  justify-self: end;
+  align-self: end;
   margin-top: 0.5rem;
   color: #1f7a1f;
 }

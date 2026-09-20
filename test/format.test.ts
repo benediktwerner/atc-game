@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_GAMES } from '../src/data';
-import { formatPlaneLine } from '../src/engine/format';
+import { formatPlaneLine, timestr } from '../src/engine/format';
 import { parseGame } from '../src/engine/parser';
 import type { Plane } from '../src/engine/types';
 
@@ -27,5 +27,20 @@ describe('formatPlaneLine', () => {
     expect(
       formatPlaneLine(plane, parseGame(BUILTIN_GAMES[0].source, 'default')),
     ).toBe('A7 E0: ↑8');
+  });
+});
+
+describe('timestr', () => {
+  it('always shows a minute field below one hour', () => {
+    expect(timestr(0)).toBe('0:00');
+    expect(timestr(27)).toBe('0:27');
+    expect(timestr(60)).toBe('1:00');
+    expect(timestr(605)).toBe('10:05');
+  });
+
+  it('adds fields for longer durations', () => {
+    expect(timestr(3600)).toBe('1:00:00');
+    expect(timestr(3725)).toBe('1:02:05');
+    expect(timestr(90000)).toBe('1d+01hrs');
   });
 });
