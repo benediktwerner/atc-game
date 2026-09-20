@@ -55,7 +55,7 @@ export class App {
     const options = BUILTIN_LEVELS.map(
       (level) => `<option value="${level.name}">${level.name}</option>`,
     ).join('');
-    this.root.innerHTML = `<main class="screen menu-screen"><header class="title"><h1>ATC</h1><p>air traffic controller</p></header><p class="start-row"><label for="level">Level</label> <select id="level">${options}</select> <button id="start">Start</button></p><p class="level-stats" id="level-stats"></p>${HELP}<h2>High scores</h2>${scoreTable(loadScores())}</main>`;
+    this.root.innerHTML = `<main class="screen menu-screen"><header class="title"><h1>ATC</h1><p>air traffic controller</p><p class="source-link"><a href="https://github.com/benediktwerner/atc-game" target="_blank" rel="noreferrer">Source code on GitHub</a></p></header><p class="start-row"><label for="level">Level</label> <select id="level">${options}</select> <button id="start">Start</button></p><p class="level-stats" id="level-stats"></p>${HELP}<h2>High scores</h2>${scoreTable(loadScores())}</main>`;
     const select = this.root.querySelector<HTMLSelectElement>('#level')!;
     const stats = this.root.querySelector<HTMLElement>('#level-stats')!;
     select.onchange = () => {

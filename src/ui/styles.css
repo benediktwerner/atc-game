@@ -193,6 +193,9 @@ th {
 .title > p {
   margin-top: 0.3rem;
 }
+.source-link a {
+  color: inherit;
+}
 .start-row {
   display: flex;
   flex-wrap: wrap;
