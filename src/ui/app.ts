@@ -10,9 +10,11 @@ import { directionTokenForCode } from './keyboard';
 import {
   lastName,
   loadScores,
+  previewScores,
   qualifies,
   saveScore,
   type ScoreCandidate,
+  type ScoreEntry,
 } from './scores';
 
 interface FinishedGame {
@@ -50,7 +52,7 @@ export class App {
     const options = BUILTIN_LEVELS.map(
       (level) => `<option value="${level.name}">${level.name}</option>`,
     ).join('');
-    this.root.innerHTML = `<main class="screen"><h1>ATC</h1><p>air traffic controller</p><label>Level <select id="level">${options}</select></label> <button id="start">Start</button><section class="help"><h2>How to play</h2><p>Planes enter from numbered exits and airports. Guide each plane to its labelled destination: land at an airport at altitude 0 in the runway direction, or leave through an exit at altitude 9.</p><p>Type a plane letter first, then a command. The eight physical keys around <code>s</code> turn a plane, regardless of keyboard layout; for example, <code>Atd</code> turns plane A east. Use <code>Aa9</code> to set altitude 9, or <code>Aac2</code> / <code>Aad2</code> to climb or descend two levels.</p><p>Use <code>Attb0</code> to turn towards beacon 0, and append <code>@b0</code> to a heading command to apply it when the plane reaches beacon 0. Mark, unmark, or ignore planes with <code>m</code>, <code>u</code>, and <code>i</code>. Empty Enter advances the simulation; Space advances one step without changing a command you are typing; Escape pauses.</p></section><h2>High scores</h2>${this.scoreTable()}</main>`;
+    this.root.innerHTML = `<main class="screen"><h1>ATC</h1><p>air traffic controller</p><label>Level <select id="level">${options}</select></label> <button id="start">Start</button><section class="help"><h2>How to play</h2><p>Planes enter from numbered exits and airports. Guide each plane to its labelled destination: land at an airport at altitude 0 in the runway direction, or leave through an exit at altitude 9.</p><p>Type a plane letter first, then a command. The eight physical keys around <code>s</code> turn a plane, regardless of keyboard layout; for example, <code>Atd</code> turns plane A east. Use <code>Aa9</code> to set altitude 9, or <code>Aac2</code> / <code>Aad2</code> to climb or descend two levels.</p><p>Use <code>Attb0</code> to turn towards beacon 0, and append <code>@b0</code> to a heading command to apply it when the plane reaches beacon 0. Mark, unmark, or ignore planes with <code>m</code>, <code>u</code>, and <code>i</code>. Empty Enter advances the simulation; Space advances one step without changing a command you are typing; Escape pauses.</p></section><h2>High scores</h2>${scoreTable(loadScores())}</main>`;
     this.root.querySelector<HTMLButtonElement>('#start')!.onclick = () =>
       this.start(this.root.querySelector<HTMLSelectElement>('#level')!.value);
   }
@@ -223,28 +225,51 @@ export class App {
     this.finishedGame = null;
     const canSave = qualifies(candidate, '__new_name__');
     this.game = null;
-    this.root.innerHTML = `<main class="screen"><h1>${plane ? `Plane '${plane}' ${message}` : message}</h1><p>Planes safe: ${candidate.planes}<br>Time: ${candidate.ticks} updates<br>Real time: ${timestr(candidate.realTimeSec)}</p>${canSave ? `<label>Name <input id="name" maxlength="16" value="${lastName()}"></label><button id="save">Save</button><p id="save-message"></p>` : ''}<h2>High scores</h2>${this.scoreTable()}<button id="new-game">New game</button></main>`;
-    if (canSave)
-      this.root.querySelector<HTMLButtonElement>('#save')!.onclick = () => {
-        const name = this.root.querySelector<HTMLInputElement>('#name')!.value;
-        const target = this.root.querySelector('#save-message')!;
-        target.textContent = saveScore(candidate, name)
-          ? 'Score saved.'
-          : 'Your previous score for this game was better.';
-        if (target.textContent === 'Score saved.')
-          this.root.querySelector('#save')!.setAttribute('disabled', '');
+    const level = this.levelName;
+    const initialName = lastName();
+    const initial = canSave
+      ? previewScores(candidate, initialName)
+      : { scores: loadScores(), index: -1 };
+    const saveSection = canSave
+      ? `<section class="save"><h2>Save your score</h2><p>Enter a name to add this result to the table below. Reusing a name replaces your previous score for this level, but only when the new one is better.</p><p class="save-row"><label for="score-name">Name</label> <input id="score-name" maxlength="16" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(initialName)}"> <button id="save"${initial.index < 0 ? ' disabled' : ''}>Save score</button></p><p id="save-message">${rankNote(initial.index)}</p></section>`
+      : `<p class="note">This result does not make the high-score table.</p>`;
+    this.root.innerHTML = `<main class="screen score-screen"><h1>${plane ? `Plane '${plane}' ${message}` : message}</h1><p class="summary">Planes safe: ${candidate.planes}<br>Time: ${candidate.ticks} updates<br>Real time: ${timestr(candidate.realTimeSec)}</p>${saveSection}<h2>High scores</h2><div id="scores">${scoreTable(initial.scores, initial.index)}</div><p class="actions"><button id="again">Play ${escapeHtml(level)} again</button> <button id="menu">Main menu</button></p></main>`;
+    const scores = this.root.querySelector<HTMLElement>('#scores')!;
+    const input = this.root.querySelector<HTMLInputElement>('#score-name');
+    if (canSave && input) {
+      const save = this.root.querySelector<HTMLButtonElement>('#save')!;
+      const note = this.root.querySelector<HTMLElement>('#save-message')!;
+      const preview = (): void => {
+        const projected = previewScores(candidate, input.value);
+        scores.innerHTML = scoreTable(projected.scores, projected.index);
+        save.disabled = projected.index < 0;
+        note.textContent = rankNote(projected.index);
       };
-    this.root.querySelector<HTMLButtonElement>('#new-game')!.onclick = () =>
+      input.addEventListener('input', preview);
+      input.addEventListener('change', preview);
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') save.click();
+      });
+      save.onclick = () => {
+        const { index } = previewScores(candidate, input.value);
+        if (index < 0 || !saveScore(candidate, input.value)) {
+          preview();
+          return;
+        }
+        scores.innerHTML = scoreTable(loadScores(), index);
+        note.textContent = `Score saved at #${index + 1}.`;
+        save.disabled = true;
+        input.disabled = true;
+      };
+      input.focus();
+      input.select();
+      // Re-check once the browser has had a chance to restore or autofill the field.
+      requestAnimationFrame(preview);
+    }
+    this.root.querySelector<HTMLButtonElement>('#again')!.onclick = () =>
+      this.start(level);
+    this.root.querySelector<HTMLButtonElement>('#menu')!.onclick = () =>
       this.startScreen();
-  }
-  private scoreTable(): string {
-    const rows = loadScores()
-      .map(
-        (score, index) =>
-          `<tr><td>${index + 1}</td><td>${score.name}</td><td>${score.level}</td><td>${score.ticks}</td><td>${timestr(score.realTimeSec)}</td><td>${score.planes}</td></tr>`,
-      )
-      .join('');
-    return `<table><thead><tr><th>#</th><th>name</th><th>level</th><th>time</th><th>real time</th><th>planes safe</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
   private fitGameToViewport(): void {
     if (!this.gameShell) return;
@@ -273,4 +298,35 @@ export class App {
       this.timer = null;
     }
   }
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    (char) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[char]!,
+  );
+}
+
+function rankNote(index: number): string {
+  return index < 0
+    ? 'Your previous score for this level was better, so there is nothing to save.'
+    : `Saving will place you at #${index + 1}.`;
+}
+
+/** Renders the score table; `highlight` marks a pending or just-saved row. */
+function scoreTable(scores: ScoreEntry[], highlight = -1): string {
+  const rows = scores
+    .map(
+      (score, index) =>
+        `<tr${index === highlight ? ' class="highlight"' : ''}><td>${index + 1}</td><td>${escapeHtml(score.name)}</td><td>${escapeHtml(score.level)}</td><td>${score.ticks}</td><td>${timestr(score.realTimeSec)}</td><td>${score.planes}</td></tr>`,
+    )
+    .join('');
+  return `<table><thead><tr><th>#</th><th>name</th><th>level</th><th>time</th><th>real time</th><th>planes safe</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

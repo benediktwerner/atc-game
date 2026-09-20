@@ -119,6 +119,52 @@ th {
   padding: 0.2rem 0.55rem;
   text-align: left;
 }
+.highlight td {
+  color: #000;
+  background: #33ff33;
+}
+.score-screen > * {
+  margin: 0;
+}
+.score-screen > * + * {
+  margin-top: 3rem;
+}
+.score-screen > #scores {
+  margin-top: 0.75rem;
+}
+.summary {
+  line-height: 1.7;
+}
+.note {
+  color: #1f7a1f;
+}
+.save {
+  max-width: 56ch;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid #1f7a1f;
+}
+.save > * {
+  margin: 0;
+}
+.save > * + * {
+  margin-top: 1.1rem;
+}
+.save-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+#save-message {
+  min-height: 1.2em;
+  color: #1f7a1f;
+}
+#scores table {
+  margin: 0;
+}
+.actions button {
+  margin-right: 0.6rem;
+}
 #overlay {
   position: fixed;
   inset: 0;

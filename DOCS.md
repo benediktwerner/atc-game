@@ -358,7 +358,18 @@ paused time is excluded from the recorded real time.
 
 On a loss the message is shown and Space opens the score screen, which reports planes
 safe, ticks and real time, offers a name input when the score qualifies, and lists the
-table. Scores live in `localStorage` (keys `atc.scores.v1` and `atc.lastName.v1`),
+table. When the score qualifies, the table is rendered with the score already projected
+into place — the pending row highlighted and the rank noted (`Your score will be #3.`)
+— from the moment the screen opens, and it re-renders whenever the name changes, since
+the rank depends on it. Save (or Enter) persists the score, re-renders the table from
+storage and reports the final rank. The name field disables browser autofill, which
+would otherwise change the value after the first render. Because the table holds one
+entry per name+level, any result can be saved under a fresh name until the table is
+full; a result only fails to qualify when the table is full and every entry beats it,
+in which case the screen says so instead of showing the form. The screen also offers a
+button to replay the same level and one to return to the main menu.
+
+Scores live in `localStorage` (keys `atc.scores.v1` and `atc.lastName.v1`),
 keep the best `NUM_SCORES` entries and at most one entry per name+level, and are ranked
 by planes safe, then ticks, then lowest real time.
 
