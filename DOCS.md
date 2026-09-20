@@ -75,12 +75,9 @@ the command editor is expecting a direction).
 | 6   | `a` | -1  | 0   | 270     | W       |
 | 7   | `q` | -1  | -1  | 315     | NW      |
 
-`dirFromDxDy` **truncates, it does not round** — it reproduces the original's C `(int)`
-cast:
-
-```ts
-Math.trunc((Math.atan2(dy, dx) * 8) / (2 * Math.PI) + 2.5 + 8) % 8;
-```
+`dirFromDxDy` converts a displacement to the nearest direction by **truncating, not
+rounding** — it reproduces the original's C `(int)` cast, and the difference is
+visible in `tt` commands to targets that sit near an octant boundary.
 
 Plane letters: propeller planes are `A`–`Z`, jets are `a`–`z`, both derived from the same
 `id` in `0..25`.
@@ -130,14 +127,10 @@ A plane's commanded heading is either `{ kind: 'fixed', dir }` or
 `{ kind: 'circle', turn: 'cw' | 'ccw' }`.
 
 A fixed heading is approached along the shortest rotation, clamped to ±2 steps (90°)
-per move. Circling uses literal tables, **not** a formula — they encode the original's
-odd-to-even heading convergence, and a test asserts that `CIRCLE_CCW` is the exact
-mirror of `CIRCLE_CW`:
-
-```ts
-CIRCLE_CW = [2, 3, 4, 5, 6, 7, 0, 0];
-CIRCLE_CCW = [6, 0, 0, 1, 2, 3, 4, 5];
-```
+per move. Circling uses **lookup tables, not a formula**: they reproduce the original's
+quirk that a plane on a diagonal heading converges onto a cardinal one instead of
+circling evenly. Do not "simplify" them into arithmetic; a test asserts that the
+counter-clockwise table is the exact mirror of the clockwise one.
 
 A plane carries two independent heading fields: `heading` (executing now) and
 `pending` (deferred until a beacon). A delayed command therefore does **not** freeze
@@ -192,8 +185,9 @@ up to `exits + airports` times.
   plane waiting, so planes may queue on the ground. The plane starts at altitude 0
   and only leaves the ground once an altitude command clears it for take-off.
 
-New planes are `marked`. Letters are assigned by scanning forward from the last used
-`id`, wrapping at 26; if all 26 are in use no plane is spawned.
+New planes are `marked`. Letters are recycled in a rotation rather than reusing the
+lowest free one, so a freed letter takes a while to reappear; nothing spawns while all
+26 are in use.
 
 ---
 
@@ -321,7 +315,7 @@ Each radar cell occupies **two screen columns** — cell `(x, y)` renders at col
 | glyph                | meaning                                         |
 | -------------------- | ----------------------------------------------- |
 | `.`                  | empty interior cell (first column of the pair)  |
-| `-` `                | `                                               | arena border |
+| `-` `\|`             | arena border                                    |
 | `+`                  | a line segment                                  |
 | `*<n>`               | beacon `n`                                      |
 | `<n>`                | exit `n`, on the border                         |
@@ -344,18 +338,17 @@ turning or has a pending command. A pending command appends ` @ B<n>`, an unmark
 ignored plane with no detail shows `---------`, and an altitude change in progress
 appends ` ↑<n>` / ` ↓<n>`.
 
-The progress line is a Web Animations API animation restarted by `scheduleTick()`, the
-single place that arms the update timer, so a forced update and pause/resume keep the
-line in step with the real interval.
+The progress line is driven by the same code that arms the update timer, so a forced
+update and pause/resume keep it in step with the real interval.
 
 ### 6.3 Input area
 
 Three rows: the echoed command with a block cursor, the `^` caret underlining a
 rejected token, and the message or `?` hint row. A rejected command clears the editor
-but stays echoed on the first row (`Editor.errorText`) so the caret still points at the
-offending token; the echo disappears on the next keystroke. The board is a two-column grid — radar
-and info panel on top, input area bottom-left and the credit line `ATC - by Ed James`
-bottom-right, under the info panel.
+but stays echoed, so the caret still points at the offending token; the echo disappears
+on the next keystroke. The board is a two-column grid — radar and info panel on top,
+input area bottom-left and the credit line `ATC - by Ed James` bottom-right, under the
+info panel.
 
 ### 6.4 Pause, game over and scores
 
@@ -364,17 +357,16 @@ Continue / Restart / Quit; the game also auto-pauses when the tab is hidden, and
 paused time is excluded from the recorded real time.
 
 On a loss the message is shown and Space opens the score screen, which reports planes
-safe, ticks and real time, offers a name input when the score qualifies, and lists the
-table. When the score qualifies, the table is rendered with the score already projected
-into place — the pending row highlighted and the rank noted (`Your score will be #3.`)
-— from the moment the screen opens, and it re-renders whenever the name changes, since
-the rank depends on it. Save (or Enter) persists the score, re-renders the table from
-storage and reports the final rank. The name field disables browser autofill, which
-would otherwise change the value after the first render. Because the table holds one
-entry per name+level, any result can be saved under a fresh name until the table is
-full; a result only fails to qualify when the table is full and every entry beats it,
-in which case the screen says so instead of showing the form. The screen also offers a
-button to replay the same level and one to return to the main menu.
+safe, ticks and real time, lists the high-score table and offers buttons to replay the
+same level or return to the main menu.
+
+If the result can be saved, the table is shown with the score **already projected into
+place** — the pending row highlighted and its rank noted — from the moment the screen
+opens, and re-projected whenever the name changes, since the rank depends on it. Saving
+persists the score and re-renders the table from storage. Because the table holds one
+entry per name+level, nearly any result can be saved under a fresh name; it only fails
+to qualify when the table is full and every entry beats it, in which case the screen
+says so instead of offering the form.
 
 Scores live in `localStorage` (keys `atc.scores.v1` and `atc.lastName.v1`),
 keep the best `NUM_SCORES` entries and at most one entry per name+level, and are ranked
@@ -390,12 +382,10 @@ The start screen shows the title, a level picker with a Start button, a stats li
 the selected level, a "How to play" section and the high-score table. The stats line is
 re-rendered whenever the picker changes and reports the radar size, the seconds between
 moves (`update`), the spawn chance (`newplane`, as `1 in N` moves) and the number of
-exits, beacons and airports. The help section keeps a two-paragraph summary of the
-objective visible and hides the full reference behind a collapsed `Commands and rules`
-disclosure, so the menu stays short. That reference covers the commands, direction and
-editing keys, worked examples, the radar symbols, the info-panel line format, the
-flight limits (turn and climb rate, collisions, fuel, entry, delayed commands) and what
-marking does. Command examples use lower-case plane letters.
+exits, beacons and airports. The help section keeps a short summary of the objective
+visible and hides the full reference — commands, keys, radar symbols, info-panel format
+and flight rules — behind a collapsed `Commands and rules` disclosure, so the menu
+stays short. Command examples use lower-case plane letters.
 
 ---
 
