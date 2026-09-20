@@ -25,6 +25,7 @@ interface Frag {
   state: StateId;
   ch: Token;
 }
+
 export interface Editor {
   frags: Frag[];
   state: StateId;
@@ -32,6 +33,7 @@ export interface Editor {
   message: string;
   caretUnder: { col: number; len: number } | null;
 }
+
 interface Draft {
   plane: Plane | null;
   heading?: HeadingCmd;

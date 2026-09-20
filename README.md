@@ -50,6 +50,6 @@ npm test
 npm run build
 ```
 
-Game rules are specified in `SPEC.md`; `PLAN.md` documents intentional web-port
-deviations and takes precedence where the two differ. The original BSD source under
-`orig/` is read-only historical reference.
+`DOCS.md` is the reference for the game rules, the command grammar, the scenario-file
+format and the intentional deviations from the original BSD game. Keep it up to date
+when changing behaviour.
