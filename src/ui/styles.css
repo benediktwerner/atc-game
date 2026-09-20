@@ -110,6 +110,39 @@ aside {
 .help {
   max-width: 72ch;
 }
+.help > *,
+.help details > * {
+  margin: 0;
+}
+.help > * + *,
+.help details > * + * {
+  margin-top: 0.9rem;
+}
+.help details > h3 {
+  margin-top: 1.7rem;
+  font-size: 1em;
+  text-decoration: underline;
+}
+.help details > h3 + * {
+  margin-top: 0.5rem;
+}
+.help summary {
+  cursor: pointer;
+  color: #33ff33;
+}
+.help summary:hover {
+  text-decoration: underline;
+}
+.help table {
+  margin: 0;
+}
+.help td {
+  padding: 0.1rem 1.2rem 0.1rem 0;
+  vertical-align: top;
+}
+.help td:first-child {
+  white-space: nowrap;
+}
 table {
   border-collapse: collapse;
   margin: 0.75rem 0;
@@ -123,14 +156,25 @@ th {
   color: #000;
   background: #33ff33;
 }
-.score-screen > * {
-  margin: 0;
-}
+.menu-screen > * + *,
 .score-screen > * + * {
   margin-top: 3rem;
 }
-.score-screen > #scores {
+.menu-screen > h2 + *,
+.score-screen > h2 + * {
   margin-top: 0.75rem;
+}
+.title > * {
+  margin: 0;
+}
+.title > p {
+  margin-top: 0.3rem;
+}
+.start-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
 }
 .summary {
   line-height: 1.7;
@@ -159,7 +203,8 @@ th {
   min-height: 1.2em;
   color: #1f7a1f;
 }
-#scores table {
+#scores table,
+.menu-screen table {
   margin: 0;
 }
 .actions button {

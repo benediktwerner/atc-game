@@ -82,7 +82,7 @@ cast:
 Math.trunc((Math.atan2(dy, dx) * 8) / (2 * Math.PI) + 2.5 + 8) % 8;
 ```
 
-Plane letters: prop planes are `A`–`Z`, jets are `a`–`z`, both derived from the same
+Plane letters: propeller planes are `A`–`Z`, jets are `a`–`z`, both derived from the same
 `id` in `0..25`.
 
 ---
@@ -113,7 +113,7 @@ One tick, in this exact order:
 2. Any ground plane whose target altitude is above 0 takes off: it moves from the
    ground list to the air list.
 3. For every airborne plane, in list order:
-   - Prop planes are skipped on odd ticks; jets move every tick.
+   - Propeller planes are skipped on odd ticks; jets move every tick.
    - `fuel -= 1`; at `fuel < 0` the plane **ran out of fuel**.
    - Altitude moves one step toward the target altitude.
    - The heading advances one step (§3.3) and the plane moves one cell that way.
@@ -180,7 +180,7 @@ plane letter.
 
 ### 3.5 Spawning
 
-A level needs at least two exits/airports. The plane kind (prop or jet) and the
+A level needs at least two exits/airports. The plane kind (propeller or jet) and the
 destination are chosen at random over the combined exit+airport list; the origin is
 drawn at random from the same list, excluding the destination, and retried on failure
 up to `exits + airports` times.
@@ -377,6 +377,16 @@ Real-time durations are formatted as `<d>d+<hh>hrs`, `<h>:<mm>:<ss>` or `<m>:<ss
 minute field is always present, so a sub-minute game shows `0:27` and a zero-length one
 shows `0:00`.
 
+### 6.5 Main menu
+
+The start screen shows the title, a level picker with a Start button, a "How to play"
+section and the high-score table. The help section keeps a two-paragraph summary of the
+objective visible and hides the full reference behind a collapsed `Commands and rules`
+disclosure, so the menu stays short. That reference covers the commands, direction and
+editing keys, worked examples, the radar symbols, the info-panel line format, the
+flight limits (turn and climb rate, collisions, fuel, entry, delayed commands) and what
+marking does. Command examples use lower-case plane letters.
+
 ---
 
 ## 7. Development
@@ -458,7 +468,7 @@ silently revert any of them.
 Do not "helpfully" fix these. If you think one should change, ask first.
 
 - The odd-to-even heading convergence of the circling tables (§3.3).
-- Prop planes move only on even ticks; jets move every tick.
+- Propeller planes move only on even ticks; jets move every tick.
 - Multiple planes may queue on the ground at one airport, and an airport origin is
   accepted even when a plane is already waiting there.
 - An immediate heading command supersedes and clears any pending delayed command.
