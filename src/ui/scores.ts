@@ -2,7 +2,7 @@ import { NUM_SCORES } from '../engine/game';
 
 export interface ScoreEntry {
   name: string;
-  game: string;
+  level: string;
   planes: number;
   ticks: number;
   realTimeSec: number;
@@ -21,17 +21,28 @@ export function loadScores(): ScoreEntry[] {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(valid).sort(compare).slice(0, NUM_SCORES);
+    return parsed.map(migrate).filter(valid).sort(compare).slice(0, NUM_SCORES);
   } catch {
     return [];
   }
 }
+/** Entries written before levels were renamed stored the level as `game`. */
+function migrate(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) return value;
+  const entry = value as Record<string, unknown>;
+  if (entry.level === undefined && typeof entry.game === 'string') {
+    const { game, ...rest } = entry;
+    return { ...rest, level: game };
+  }
+  return value;
+}
+
 function valid(value: unknown): value is ScoreEntry {
   return (
     typeof value === 'object' &&
     value !== null &&
     typeof (value as ScoreEntry).name === 'string' &&
-    typeof (value as ScoreEntry).game === 'string' &&
+    typeof (value as ScoreEntry).level === 'string' &&
     typeof (value as ScoreEntry).planes === 'number' &&
     typeof (value as ScoreEntry).ticks === 'number' &&
     typeof (value as ScoreEntry).realTimeSec === 'number' &&
@@ -49,7 +60,7 @@ export function qualifies(
     dateISO: candidate.dateISO ?? new Date().toISOString(),
   };
   const existing = scores.find(
-    (score) => score.name === entry.name && score.game === entry.game,
+    (score) => score.name === entry.name && score.level === entry.level,
   );
   if (existing) return compare(entry, existing) < 0;
   return [...scores, entry].sort(compare).indexOf(entry) < NUM_SCORES;
@@ -64,7 +75,7 @@ export function saveScore(candidate: ScoreCandidate, name: string): boolean {
     dateISO: candidate.dateISO ?? new Date().toISOString(),
   };
   const existing = scores.findIndex(
-    (score) => score.name === normalized && score.game === entry.game,
+    (score) => score.name === normalized && score.level === entry.level,
   );
   if (existing >= 0) scores.splice(existing, 1);
   scores.push(entry);

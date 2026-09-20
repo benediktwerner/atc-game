@@ -13,7 +13,7 @@ npm run dev
 ```
 
 Vite prints the local URL (normally <http://localhost:5173>). Open it in a desktop
-browser, select a scenario, and press **Start**.
+browser, select a level, and press **Start**.
 
 To create a static production bundle:
 
@@ -50,6 +50,6 @@ npm test
 npm run build
 ```
 
-`DOCS.md` is the reference for the game rules, the command grammar, the scenario-file
+`DOCS.md` is the reference for the game rules, the command grammar, the level-file
 format and the intentional deviations from the original BSD game. Keep it up to date
 when changing behaviour.

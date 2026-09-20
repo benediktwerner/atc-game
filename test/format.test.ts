@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_GAMES } from '../src/data';
+import { BUILTIN_LEVELS } from '../src/data';
 import { formatPlaneLine, timestr } from '../src/engine/format';
-import { parseGame } from '../src/engine/parser';
+import { parseLevel } from '../src/engine/parser';
 import type { Plane } from '../src/engine/types';
 
 describe('formatPlaneLine', () => {
@@ -25,7 +25,7 @@ describe('formatPlaneLine', () => {
     };
 
     expect(
-      formatPlaneLine(plane, parseGame(BUILTIN_GAMES[0].source, 'default')),
+      formatPlaneLine(plane, parseLevel(BUILTIN_LEVELS[0].source, 'default')),
     ).toBe('A7 E0: ↑8');
   });
 });

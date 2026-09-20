@@ -1,8 +1,8 @@
 import { CommandEditor } from '../engine/commands';
-import { parseGame } from '../engine/parser';
+import { parseLevel } from '../engine/parser';
 import { Game } from '../engine/game';
 import { timestr } from '../engine/format';
-import { BUILTIN_GAMES } from '../data';
+import { BUILTIN_LEVELS } from '../data';
 import { renderInfo } from './info';
 import { renderInput } from './input';
 import { Radar } from './radar';
@@ -29,7 +29,7 @@ export class App {
   private startedAt = 0;
   private pausedMs = 0;
   private pauseStartedAt = 0;
-  private gameName = '';
+  private levelName = '';
   private board: HTMLElement | null = null;
   private gameShell: HTMLElement | null = null;
   private finishedGame: FinishedGame | null = null;
@@ -47,30 +47,30 @@ export class App {
     this.clearTimer();
     this.game = null;
     this.finishedGame = null;
-    const options = BUILTIN_GAMES.map(
-      (game) => `<option value="${game.name}">${game.name}</option>`,
+    const options = BUILTIN_LEVELS.map(
+      (level) => `<option value="${level.name}">${level.name}</option>`,
     ).join('');
-    this.root.innerHTML = `<main class="screen"><h1>ATC</h1><p>air traffic controller</p><label>Game <select id="game">${options}</select></label> <button id="start">Start</button><section class="help"><h2>How to play</h2><p>Planes enter from numbered exits and airports. Guide each plane to its labelled destination: land at an airport at altitude 0 in the runway direction, or leave through an exit at altitude 9.</p><p>Type a plane letter first, then a command. The eight physical keys around <code>s</code> turn a plane, regardless of keyboard layout; for example, <code>Atd</code> turns plane A east. Use <code>Aa9</code> to set altitude 9, or <code>Aac2</code> / <code>Aad2</code> to climb or descend two levels.</p><p>Use <code>Attb0</code> to turn towards beacon 0, and append <code>@b0</code> to a heading command to apply it when the plane reaches beacon 0. Mark, unmark, or ignore planes with <code>m</code>, <code>u</code>, and <code>i</code>. Empty Enter advances the simulation; Space advances one step without changing a command you are typing; Escape pauses.</p></section><h2>High scores</h2>${this.scoreTable()}</main>`;
+    this.root.innerHTML = `<main class="screen"><h1>ATC</h1><p>air traffic controller</p><label>Level <select id="level">${options}</select></label> <button id="start">Start</button><section class="help"><h2>How to play</h2><p>Planes enter from numbered exits and airports. Guide each plane to its labelled destination: land at an airport at altitude 0 in the runway direction, or leave through an exit at altitude 9.</p><p>Type a plane letter first, then a command. The eight physical keys around <code>s</code> turn a plane, regardless of keyboard layout; for example, <code>Atd</code> turns plane A east. Use <code>Aa9</code> to set altitude 9, or <code>Aac2</code> / <code>Aad2</code> to climb or descend two levels.</p><p>Use <code>Attb0</code> to turn towards beacon 0, and append <code>@b0</code> to a heading command to apply it when the plane reaches beacon 0. Mark, unmark, or ignore planes with <code>m</code>, <code>u</code>, and <code>i</code>. Empty Enter advances the simulation; Space advances one step without changing a command you are typing; Escape pauses.</p></section><h2>High scores</h2>${this.scoreTable()}</main>`;
     this.root.querySelector<HTMLButtonElement>('#start')!.onclick = () =>
-      this.start(this.root.querySelector<HTMLSelectElement>('#game')!.value);
+      this.start(this.root.querySelector<HTMLSelectElement>('#level')!.value);
   }
 
   private start(name: string): void {
-    const builtin = BUILTIN_GAMES.find((item) => item.name === name);
+    const builtin = BUILTIN_LEVELS.find((item) => item.name === name);
     if (!builtin) return;
     try {
-      this.game = new Game(parseGame(builtin.source, name));
+      this.game = new Game(parseLevel(builtin.source, name));
     } catch (error) {
       this.root.textContent = `Unable to load ${name}: ${error instanceof Error ? error.message : String(error)}`;
       return;
     }
-    this.gameName = name;
+    this.levelName = name;
     this.editor = new CommandEditor(this.game);
     this.finishedGame = null;
     this.startedAt = Date.now();
     this.pausedMs = 0;
     this.pauseStartedAt = 0;
-    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><pre id="info"></pre><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
+    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>Level: ${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><pre id="info"></pre><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
     this.board = this.root.querySelector('#board');
     this.gameShell = this.root.querySelector('#game-shell');
     this.radar = new Radar(this.root.querySelector('#radar')!, this.game.def);
@@ -97,7 +97,7 @@ export class App {
         this.resume();
       } else if (['r', 'R'].includes(event.key)) {
         event.preventDefault();
-        this.start(this.gameName);
+        this.start(this.levelName);
       } else if (['q', 'Q'].includes(event.key)) {
         event.preventDefault();
         this.end(null, 'You quit.');
@@ -168,7 +168,7 @@ export class App {
       .addEventListener('click', () => this.resume());
     overlay
       .querySelector('#restart')!
-      .addEventListener('click', () => this.start(this.gameName));
+      .addEventListener('click', () => this.start(this.levelName));
     overlay
       .querySelector('#quit-now')!
       .addEventListener('click', () => this.end(null, 'You quit.'));
@@ -192,7 +192,7 @@ export class App {
       (Date.now() - this.startedAt - this.pausedMs) / 1000,
     );
     const candidate: ScoreCandidate = {
-      game: this.gameName,
+      level: this.levelName,
       planes: this.game.safePlanes,
       ticks: this.game.clock,
       realTimeSec,
@@ -207,7 +207,7 @@ export class App {
     );
     this.finishedGame = {
       candidate: {
-        game: this.gameName,
+        level: this.levelName,
         planes: this.game.safePlanes,
         ticks: this.game.clock,
         realTimeSec,
@@ -241,10 +241,10 @@ export class App {
     const rows = loadScores()
       .map(
         (score, index) =>
-          `<tr><td>${index + 1}</td><td>${score.name}</td><td>${score.game}</td><td>${score.ticks}</td><td>${timestr(score.realTimeSec)}</td><td>${score.planes}</td></tr>`,
+          `<tr><td>${index + 1}</td><td>${score.name}</td><td>${score.level}</td><td>${score.ticks}</td><td>${timestr(score.realTimeSec)}</td><td>${score.planes}</td></tr>`,
       )
       .join('');
-    return `<table><thead><tr><th>#</th><th>name</th><th>game</th><th>time</th><th>real time</th><th>planes safe</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr><th>#</th><th>name</th><th>level</th><th>time</th><th>real time</th><th>planes safe</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
   private fitGameToViewport(): void {
     if (!this.gameShell) return;

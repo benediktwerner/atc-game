@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_GAMES } from '../src/data';
+import { BUILTIN_LEVELS } from '../src/data';
 import { dirFromDxDy } from '../src/engine/dir';
 import {
   CIRCLE_CCW,
@@ -8,14 +8,14 @@ import {
   projectPath,
   stepToward,
 } from '../src/engine/game';
-import { parseGame } from '../src/engine/parser';
+import { parseLevel } from '../src/engine/parser';
 import type { Plane } from '../src/engine/types';
 
-describe('game definitions', () => {
-  it('parses every built-in scenario', () => {
-    expect(BUILTIN_GAMES).toHaveLength(15);
-    for (const game of BUILTIN_GAMES)
-      expect(parseGame(game.source, game.name).name).toBe(game.name);
+describe('level definitions', () => {
+  it('parses every built-in level', () => {
+    expect(BUILTIN_LEVELS).toHaveLength(15);
+    for (const level of BUILTIN_LEVELS)
+      expect(parseLevel(level.source, level.name).name).toBe(level.name);
   });
 });
 
@@ -35,7 +35,7 @@ describe('directions', () => {
 
 describe('path projection', () => {
   it('turns before moving and stops at the interior edge', () => {
-    const def = parseGame(BUILTIN_GAMES[0].source, 'default');
+    const def = parseLevel(BUILTIN_LEVELS[0].source, 'default');
     const plane: Plane = {
       id: 0,
       kind: 'jet',

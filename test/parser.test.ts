@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_GAMES } from '../src/data';
-import { parseGame } from '../src/engine/parser';
+import { BUILTIN_LEVELS } from '../src/data';
+import { parseLevel } from '../src/engine/parser';
 
-const VALID_GAME = `
+const VALID_LEVEL = `
 update = 5;
 newplane = 10;
 width = 10;
@@ -13,16 +13,16 @@ airport: ( 6 5 w );
 line: [ ( 0 0 ) ( 7 7 ) ];
 `;
 
-describe('parseGame', () => {
-  it('parses every bundled scenario', () => {
-    for (const game of BUILTIN_GAMES) {
-      expect(parseGame(game.source, game.name).name).toBe(game.name);
+describe('parseLevel', () => {
+  it('parses every bundled level', () => {
+    for (const level of BUILTIN_LEVELS) {
+      expect(parseLevel(level.source, level.name).name).toBe(level.name);
     }
   });
 
   it('preserves parsed entries and directions', () => {
-    const game = parseGame(VALID_GAME, 'sample');
-    expect(game).toMatchObject({
+    const level = parseLevel(VALID_LEVEL, 'sample');
+    expect(level).toMatchObject({
       name: 'sample',
       updateSecs: 5,
       newplane: 10,
@@ -46,7 +46,7 @@ height = 3;
 exit: ( 1 1 w );
 line: [ ( 0 0 ) ( 2 1 ) ];
 `;
-    expect(() => parseGame(invalid, 'bad')).toThrow(
+    expect(() => parseLevel(invalid, 'bad')).toThrow(
       '"bad": line 2: \'update\' is too small.\n' +
         '"bad": line 6: edge value not on edge.\n' +
         '"bad": line 7: Bad line endpoints.\n' +
@@ -55,16 +55,16 @@ line: [ ( 0 0 ) ( 2 1 ) ];
   });
 
   it('rejects an exit whose direction points out of the arena', () => {
-    const invalidExit = VALID_GAME.replace('( 0 3 d )', '( 0 3 w )');
-    expect(() => parseGame(invalidExit, 'bad-exit')).toThrow(
+    const invalidExit = VALID_LEVEL.replace('( 0 3 d )', '( 0 3 w )');
+    expect(() => parseLevel(invalidExit, 'bad-exit')).toThrow(
       '"bad-exit": line 6: Bad direction for entrance at exit.',
     );
   });
 
   it('enforces the addressable-entry limit', () => {
     const beacons = Array.from({ length: 11 }, () => '( 2 2 )').join(' ');
-    const source = `${VALID_GAME}\nbeacon: ${beacons};`;
-    expect(() => parseGame(source, 'many')).toThrow(
+    const source = `${VALID_LEVEL}\nbeacon: ${beacons};`;
+    expect(() => parseLevel(source, 'many')).toThrow(
       '"many": line 11: Too many beacons (max 10).',
     );
   });

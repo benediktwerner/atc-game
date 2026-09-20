@@ -6,7 +6,7 @@ controller) console game, shipped as a static web page.
 ## Read `DOCS.md` first
 
 **`DOCS.md` is the authoritative reference** for game rules, the command grammar, every
-message string, the scenario-file format, screen layout and the deliberate deviations
+message string, the level-file format, screen layout and the deliberate deviations
 from the original BSD game. Read the relevant section before changing behaviour.
 
 **Never guess game mechanics.** If a rule, constant, message string or edge case is not
@@ -14,14 +14,14 @@ covered by `DOCS.md` and cannot be settled from the code or tests, ask rather th
 inventing behaviour. The original C source is no longer part of this repository.
 
 **`DOCS.md` must be kept up to date.** Any change to game rules, command grammar,
-message strings, scenario-file syntax, screen layout or the deviation list must update
+message strings, level-file syntax, screen layout or the deviation list must update
 `DOCS.md` in the same change.
 
 ## Repository state
 
 The application is implemented as a Vite static site. `src/engine/` contains the
 headless game rules, `src/ui/` contains the DOM application, `src/data/` contains
-verbatim scenario files, and `test/` contains Vitest coverage.
+verbatim level files, and `test/` contains Vitest coverage.
 
 ## Commands
 
@@ -56,12 +56,14 @@ Two layers with a hard boundary:
 `src/ui/app.ts` owns the clock: a self-chaining `setTimeout` (never `setInterval`), so
 a forced update (empty Return) and pause/resume can cleanly reset the interval.
 
-`src/data/*.atc` are **verbatim copies of the original scenario files**, imported with
+`src/data/*.atc` are **verbatim copies of the original level files**, imported with
 Vite's `?raw` suffix and parsed at runtime by `src/engine/parser.ts`. Do not reformat,
 "clean up" or hand-convert them to JSON.
 
 ## Conventions specific to this codebase
 
+- **Naming**: a playable map is a **level** (`LevelDef`, `parseLevel`,
+  `BUILTIN_LEVELS`, "level files"); `Game` means the running session only.
 - **Deliberate deviations are enumerated in `DOCS.md` §8.** Several original bugs are
   fixed and several quirks are **deliberately preserved**. Do not "helpfully" fix a
   preserved quirk, and do not reintroduce a fixed bug. If you think a preserved quirk

@@ -1,5 +1,13 @@
 import { dirFromKey } from './dir';
-import type { Airport, Beacon, Dir, Exit, GameDef, Line, Point } from './types';
+import type {
+  Airport,
+  Beacon,
+  Dir,
+  Exit,
+  LevelDef,
+  Line,
+  Point,
+} from './types';
 
 type Keyword =
   | 'height'
@@ -98,7 +106,7 @@ class Lexer {
   }
 }
 
-class GameParser {
+class LevelParser {
   private readonly lexer: Lexer;
   private current: Token;
   private readonly errors: string[] = [];
@@ -121,7 +129,7 @@ class GameParser {
     this.current = this.lexer.next();
   }
 
-  parse(): GameDef {
+  parse(): LevelDef {
     while (this.isDefinition(this.current.kind)) this.parseDefinition();
     this.validateDefinitions();
 
@@ -365,9 +373,9 @@ class GameParser {
 }
 
 /**
- * Parse one ATC scenario. Validation failures are reported together in the same
+ * Parse one ATC level. Validation failures are reported together in the same
  * `"<name>": line <n>: <message>` format as the original game parser.
  */
-export function parseGame(source: string, name = '<input>'): GameDef {
-  return new GameParser(source, name).parse();
+export function parseLevel(source: string, name = '<input>'): LevelDef {
+  return new LevelParser(source, name).parse();
 }

@@ -6,7 +6,7 @@ BSD `atc`. Where this document and the code disagree, that is a bug in one of th
 fix both together.
 
 **Keep this document up to date.** Any change to game rules, command grammar, message
-strings, scenario-file syntax, screen layout or the deviation list in §8 must be
+strings, level-file syntax, screen layout or the deviation list in §8 must be
 reflected here in the same change.
 
 ---
@@ -24,32 +24,36 @@ Two layers with a hard boundary:
   state + editor state**, re-run after every update and every keystroke. Do not
   introduce incremental "erase plane, move, redraw plane" rendering.
 
-| file                 | contains                                                         |
-| -------------------- | ---------------------------------------------------------------- |
-| `engine/types.ts`    | `Dir`, `GameDef`, `Plane`, `HeadingCmd` and related domain types |
-| `engine/dir.ts`      | direction tables, `dirFromDxDy`, plane-letter conversions        |
-| `engine/rng.ts`      | `Rng` type and `randInt`                                         |
-| `engine/parser.ts`   | scenario-file lexer, parser and validator                        |
-| `engine/game.ts`     | `Game`: state, update loop, spawning, loss detection             |
-| `engine/commands.ts` | `CommandEditor`: command grammar, validation, application        |
-| `engine/format.ts`   | info-line and duration formatting                                |
-| `ui/app.ts`          | wires `Game` to the DOM; owns the clock and screen lifecycle     |
-| `ui/radar.ts`        | static radar layer plus the span-grid renderer                   |
-| `ui/info.ts`         | plane info panel                                                 |
-| `ui/input.ts`        | input echo, error caret and message rows                         |
-| `ui/keyboard.ts`     | key event to engine token mapping                                |
-| `ui/scores.ts`       | `localStorage` high-score table                                  |
-| `data/*.atc`         | the 15 built-in scenarios, imported with Vite's `?raw` suffix    |
+| file                 | contains                                                          |
+| -------------------- | ----------------------------------------------------------------- |
+| `engine/types.ts`    | `Dir`, `LevelDef`, `Plane`, `HeadingCmd` and related domain types |
+| `engine/dir.ts`      | direction tables, `dirFromDxDy`, plane-letter conversions         |
+| `engine/rng.ts`      | `Rng` type and `randInt`                                          |
+| `engine/parser.ts`   | level-file lexer, parser and validator                            |
+| `engine/game.ts`     | `Game`: state, update loop, spawning, loss detection              |
+| `engine/commands.ts` | `CommandEditor`: command grammar, validation, application         |
+| `engine/format.ts`   | info-line and duration formatting                                 |
+| `ui/app.ts`          | wires `Game` to the DOM; owns the clock and screen lifecycle      |
+| `ui/radar.ts`        | static radar layer plus the span-grid renderer                    |
+| `ui/info.ts`         | plane info panel                                                  |
+| `ui/input.ts`        | input echo, error caret and message rows                          |
+| `ui/keyboard.ts`     | key event to engine token mapping                                 |
+| `ui/scores.ts`       | `localStorage` high-score table                                   |
+| `data/*.atc`         | the 15 built-in levels, imported with Vite's `?raw` suffix        |
 
 `ui/app.ts` owns the clock: a self-chaining `setTimeout` (never `setInterval`), so a
 forced update and pause/resume can cleanly reset the interval.
 
-`src/data/*.atc` are **verbatim copies of the original BSD scenario files** and are
+`src/data/*.atc` are **verbatim copies of the original BSD level files** and are
 parsed at runtime. Do not reformat them, "clean them up" or convert them to JSON; they
 are excluded from Prettier. `data/index.ts` fixes their presentation order.
 
 There are **no runtime dependencies**, and dev dependencies are limited to
 `typescript`, `vite`, `vitest` and `prettier`. No UI framework.
+
+**Naming**: a playable map is a **level** (`LevelDef`, `parseLevel`, `BUILTIN_LEVELS`,
+"level files"). `Game` is reserved for the running session — the live plane lists,
+clock and update loop.
 
 ---
 
@@ -176,7 +180,7 @@ plane letter.
 
 ### 3.5 Spawning
 
-A scenario needs at least two exits/airports. The plane kind (prop or jet) and the
+A level needs at least two exits/airports. The plane kind (prop or jet) and the
 destination are chosen at random over the combined exit+airport list; the origin is
 drawn at random from the same list, excluding the destination, and retried on failure
 up to `exits + airports` times.
@@ -264,7 +268,7 @@ These strings are part of the contract and are asserted literally by tests:
 | `Altitude not changed`                                | `ac0` or `ad0`                                          |
 | `Altitude would be too low`                           | relative descent below 0                                |
 | `Altitude would be too high`                          | relative climb above 9                                  |
-| `Unknown beacon` / `Unknown exit` / `Unknown airport` | target index not defined by the scenario                |
+| `Unknown beacon` / `Unknown exit` / `Unknown airport` | target index not defined by the level                   |
 | `Plane is circling`                                   | delayed command on a circling plane                     |
 | `Beacon is not in flight path`                        | the projected path never reaches the beacon             |
 | `Would already be there`                              | delay beacon and turn-towards target are the same cell  |
@@ -272,9 +276,9 @@ These strings are part of the contract and are asserted literally by tests:
 
 ---
 
-## 5. Scenario files
+## 5. Level files
 
-Scenario files use the original `atc` game-file syntax. `#` starts a comment that runs
+Level files use the original `atc` level-file syntax. `#` starts a comment that runs
 to end of line; whitespace is insignificant.
 
 ```
@@ -355,7 +359,7 @@ paused time is excluded from the recorded real time.
 On a loss the message is shown and Space opens the score screen, which reports planes
 safe, ticks and real time, offers a name input when the score qualifies, and lists the
 table. Scores live in `localStorage` (keys `atc.scores.v1` and `atc.lastName.v1`),
-keep the best `NUM_SCORES` entries and at most one entry per name+game, and are ranked
+keep the best `NUM_SCORES` entries and at most one entry per name+level, and are ranked
 by planes safe, then ticks, then lowest real time.
 
 Real-time durations are formatted as `<d>d+<hh>hrs`, `<h>:<mm>:<ss>` or `<m>:<ss>`; the
@@ -404,7 +408,7 @@ silently revert any of them.
 - The origin-selection retry loop could never retry an airport origin; origin
   selection is now a clean bounded retry loop with the same observable behaviour.
 - Beacon/exit/airport indices above 9 rendered as `:`, `;`, … and were unaddressable;
-  the scenario validator now rejects more than 10 of any of them. All 15 shipped games
+  the level validator now rejects more than 10 of any of them. All 15 shipped levels
   comply.
 - Setting a delay suppressed the turn step entirely, so the plane flew dead straight to
   the beacon and abandoned any turn in progress; `heading` and `pending` are now

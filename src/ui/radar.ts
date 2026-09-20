@@ -1,8 +1,8 @@
 import { letterOf } from '../engine/dir';
 import type { Game } from '../engine/game';
-import type { GameDef } from '../engine/types';
+import type { LevelDef } from '../engine/types';
 
-export function staticRadar(def: GameDef): string[][] {
+export function staticRadar(def: LevelDef): string[][] {
   const rows = Array.from({ length: def.height }, () =>
     Array<string>(def.width * 2).fill(' '),
   );
@@ -43,7 +43,7 @@ export class Radar {
   private readonly base: string[][];
   constructor(
     private readonly root: HTMLElement,
-    def: GameDef,
+    def: LevelDef,
   ) {
     this.base = staticRadar(def);
     this.root.className = 'radar';

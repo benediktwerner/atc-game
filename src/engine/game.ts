@@ -1,7 +1,7 @@
 import { DX, DY, letterOf } from './dir';
 import type { Rng } from './rng';
 import { randInt } from './rng';
-import type { Dir, GameDef, HeadingCmd, Plane } from './types';
+import type { Dir, LevelDef, HeadingCmd, Plane } from './types';
 
 export const MAX_ALTITUDE = 9;
 export const ENTRY_ALTITUDE = 7;
@@ -53,7 +53,7 @@ export function tooClose(a: Plane, b: Plane, distance: number): boolean {
   );
 }
 
-export function projectPath(plane: Plane, def: GameDef): PathStep[] {
+export function projectPath(plane: Plane, def: LevelDef): PathStep[] {
   const path: PathStep[] = [];
   const seen = new Set<string>();
   let { x, y, dir } = plane;
@@ -78,7 +78,7 @@ export class Game {
   private lastPlaneId = -1;
 
   constructor(
-    readonly def: GameDef,
+    readonly def: LevelDef,
     private readonly rng: Rng = Math.random,
   ) {}
 
