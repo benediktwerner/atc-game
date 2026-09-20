@@ -81,9 +81,32 @@ header button {
   z-index: 1;
   color: #000;
 }
-#info {
+#info-panel {
+  display: flex;
+  flex-direction: column;
   width: 24ch;
   height: calc(1.15em * 21);
+}
+#info-head {
+  margin: 0;
+  white-space: pre;
+}
+#tick {
+  height: 2px;
+  margin: 0.5em 0 0.65em;
+  background: #0d2b0d;
+}
+#tick-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #1f7a1f;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+#info {
+  flex: 1;
+  min-height: 0;
   margin: 0;
   overflow-y: auto;
   white-space: pre;

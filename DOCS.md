@@ -330,8 +330,9 @@ Each radar cell occupies **two screen columns** — cell `(x, y)` renders at col
 
 ### 6.2 Info panel
 
-Header `Time: <clock>  Safe: <count>`, then one line per plane — airborne planes
-first, then planes waiting on the ground:
+Header `Time: <clock>  Safe: <count>`, then a thin progress line that fills over the
+level's `update` interval to show how soon the next move happens, then one line per
+plane — airborne planes first, then planes waiting on the ground:
 
 ```
 <letter><altitude><'*' if low fuel><'A'|'E'><dest>: <detail>
@@ -342,6 +343,10 @@ a circling plane (never plain `Circle`), or the heading in degrees when the plan
 turning or has a pending command. A pending command appends ` @ B<n>`, an unmarked or
 ignored plane with no detail shows `---------`, and an altitude change in progress
 appends ` ↑<n>` / ` ↓<n>`.
+
+The progress line is a Web Animations API animation restarted by `scheduleTick()`, the
+single place that arms the update timer, so a forced update and pause/resume keep the
+line in step with the real interval.
 
 ### 6.3 Input area
 

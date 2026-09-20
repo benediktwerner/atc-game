@@ -30,6 +30,7 @@ export class App {
   private editor: CommandEditor | null = null;
   private radar: Radar | null = null;
   private timer: number | null = null;
+  private tickBar: Animation | null = null;
   private startedAt = 0;
   private pausedMs = 0;
   private pauseStartedAt = 0;
@@ -80,7 +81,7 @@ export class App {
     this.startedAt = Date.now();
     this.pausedMs = 0;
     this.pauseStartedAt = 0;
-    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>Level: ${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><pre id="info"></pre><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
+    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>Level: ${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><div id="info-panel"><pre id="info-head"></pre><div id="tick"><span id="tick-fill"></span></div><pre id="info"></pre></div><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
     this.board = this.root.querySelector('#board');
     this.gameShell = this.root.querySelector('#game-shell');
     this.radar = new Radar(this.root.querySelector('#radar')!, this.game.def);
@@ -154,15 +155,30 @@ export class App {
       this.awaitScoreScreen(lost.planeLetter, lost.message);
       return;
     }
-    this.timer = window.setTimeout(
-      () => this.tick(),
-      this.game.def.updateSecs * 1000,
-    );
+    this.scheduleTick();
+  }
+  /** Arms the next update and restarts the progress line that counts down to it. */
+  private scheduleTick(): void {
+    if (!this.game) return;
+    const interval = this.game.def.updateSecs * 1000;
+    this.timer = window.setTimeout(() => this.tick(), interval);
+    const fill = this.root.querySelector<HTMLElement>('#tick-fill');
+    this.tickBar?.cancel();
+    this.tickBar =
+      fill?.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], {
+        duration: interval,
+        easing: 'linear',
+        fill: 'forwards',
+      }) ?? null;
   }
   private render(): void {
     if (!this.game || !this.radar || !this.editor) return;
     this.radar.render(this.game);
-    renderInfo(this.root.querySelector('#info')!, this.game);
+    renderInfo(
+      this.root.querySelector('#info-head')!,
+      this.root.querySelector('#info')!,
+      this.game,
+    );
     renderInput(this.root.querySelector('#input')!, this.editor.editor);
   }
   private pause(): void {
@@ -190,10 +206,7 @@ export class App {
     this.board!.style.visibility = '';
     const overlay = this.root.querySelector<HTMLElement>('#overlay')!;
     overlay.hidden = true;
-    this.timer = window.setTimeout(
-      () => this.tick(),
-      this.game.def.updateSecs * 1000,
-    );
+    this.scheduleTick();
   }
   private end(plane: string | null, message: string): void {
     if (!this.game) return;
@@ -301,6 +314,8 @@ export class App {
     this.gameShell.style.transform = `scale(${scale})`;
   }
   private clearTimer(): void {
+    this.tickBar?.cancel();
+    this.tickBar = null;
     if (this.timer !== null) {
       clearTimeout(this.timer);
       this.timer = null;
