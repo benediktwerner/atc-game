@@ -9,13 +9,16 @@ export function formatPlaneLine(plane: Plane, _def: GameDef): string {
   const heading = plane.pending?.heading ?? plane.heading;
   let detail = '';
   if (plane.altitude === 0) detail = `Holding @ A${plane.origNo}`;
-  else if (heading.kind === 'circle') detail = `Circle ${heading.turn === 'cw' ? 'R' : 'L'}`;
-  else if (plane.pending || heading.dir !== plane.dir) detail = String(DEG[heading.dir]);
+  else if (heading.kind === 'circle')
+    detail = `Circle ${heading.turn === 'cw' ? 'R' : 'L'}`;
+  else if (plane.pending || heading.dir !== plane.dir)
+    detail = String(DEG[heading.dir]);
   line += detail;
   if (plane.pending) line += ` @ B${plane.pending.beacon}`;
-  if (!detail && (plane.status === 'unmarked' || plane.status === 'ignored')) line += '---------';
-  if (plane.newAltitude !== plane.altitude) {
-    line += `${line.endsWith(' ') ? '' : ' '}${plane.newAltitude > plane.altitude ? '↑' : '↓'}${plane.newAltitude}`;
+  if (!detail && (plane.status === 'unmarked' || plane.status === 'ignored'))
+    line += '---------';
+  if (plane.targetAltitude !== plane.altitude) {
+    line += `${line.endsWith(' ') ? '' : ' '}${plane.targetAltitude > plane.altitude ? '↑' : '↓'}${plane.targetAltitude}`;
   }
   return line;
 }
@@ -26,7 +29,8 @@ export function timestr(seconds: number): string {
   const minutes = Math.floor(seconds / 60) % 60;
   const secs = seconds % 60;
   if (days > 0) return `${days}d+${String(hours).padStart(2, '0')}hrs`;
-  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  if (hours > 0)
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   if (minutes > 0) return `${minutes}:${String(secs).padStart(2, '0')}`;
   return secs > 0 ? `:${String(secs).padStart(2, '0')}` : '';
 }

@@ -8,7 +8,9 @@ export interface ScoreEntry {
   realTimeSec: number;
   dateISO: string;
 }
-export interface ScoreCandidate extends Omit<ScoreEntry, 'name' | 'dateISO'> { dateISO?: string; }
+export interface ScoreCandidate extends Omit<ScoreEntry, 'name' | 'dateISO'> {
+  dateISO?: string;
+}
 const KEY = 'atc.scores.v1';
 const NAME_KEY = 'atc.lastName.v1';
 
@@ -20,17 +22,35 @@ export function loadScores(): ScoreEntry[] {
     const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(valid).sort(compare).slice(0, NUM_SCORES);
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 function valid(value: unknown): value is ScoreEntry {
-  return typeof value === 'object' && value !== null &&
-    typeof (value as ScoreEntry).name === 'string' && typeof (value as ScoreEntry).game === 'string' &&
-    typeof (value as ScoreEntry).planes === 'number' && typeof (value as ScoreEntry).ticks === 'number' &&
-    typeof (value as ScoreEntry).realTimeSec === 'number' && typeof (value as ScoreEntry).dateISO === 'string';
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as ScoreEntry).name === 'string' &&
+    typeof (value as ScoreEntry).game === 'string' &&
+    typeof (value as ScoreEntry).planes === 'number' &&
+    typeof (value as ScoreEntry).ticks === 'number' &&
+    typeof (value as ScoreEntry).realTimeSec === 'number' &&
+    typeof (value as ScoreEntry).dateISO === 'string'
+  );
 }
-export function qualifies(candidate: ScoreCandidate, name: string, scores = loadScores()): boolean {
-  const entry: ScoreEntry = { ...candidate, name: name.trim().slice(0, 16), dateISO: candidate.dateISO ?? new Date().toISOString() };
-  const existing = scores.find((score) => score.name === entry.name && score.game === entry.game);
+export function qualifies(
+  candidate: ScoreCandidate,
+  name: string,
+  scores = loadScores(),
+): boolean {
+  const entry: ScoreEntry = {
+    ...candidate,
+    name: name.trim().slice(0, 16),
+    dateISO: candidate.dateISO ?? new Date().toISOString(),
+  };
+  const existing = scores.find(
+    (score) => score.name === entry.name && score.game === entry.game,
+  );
   if (existing) return compare(entry, existing) < 0;
   return [...scores, entry].sort(compare).indexOf(entry) < NUM_SCORES;
 }
@@ -38,16 +58,31 @@ export function saveScore(candidate: ScoreCandidate, name: string): boolean {
   const normalized = name.trim().slice(0, 16);
   const scores = loadScores();
   if (!qualifies(candidate, normalized, scores)) return false;
-  const entry: ScoreEntry = { ...candidate, name: normalized, dateISO: candidate.dateISO ?? new Date().toISOString() };
-  const existing = scores.findIndex((score) => score.name === normalized && score.game === entry.game);
+  const entry: ScoreEntry = {
+    ...candidate,
+    name: normalized,
+    dateISO: candidate.dateISO ?? new Date().toISOString(),
+  };
+  const existing = scores.findIndex(
+    (score) => score.name === normalized && score.game === entry.game,
+  );
   if (existing >= 0) scores.splice(existing, 1);
   scores.push(entry);
   try {
-    localStorage.setItem(KEY, JSON.stringify(scores.sort(compare).slice(0, NUM_SCORES)));
+    localStorage.setItem(
+      KEY,
+      JSON.stringify(scores.sort(compare).slice(0, NUM_SCORES)),
+    );
     localStorage.setItem(NAME_KEY, normalized);
-  } catch { return false; }
+  } catch {
+    return false;
+  }
   return true;
 }
 export function lastName(): string {
-  try { return localStorage.getItem(NAME_KEY) ?? ''; } catch { return ''; }
+  try {
+    return localStorage.getItem(NAME_KEY) ?? '';
+  } catch {
+    return '';
+  }
 }

@@ -25,8 +25,7 @@ export type MarkStatus = 'marked' | 'unmarked' | 'ignored';
 export type DestType = 'exit' | 'airport';
 
 export type HeadingCmd =
-  | { kind: 'fixed'; dir: Dir }
-  | { kind: 'circle'; turn: 'cw' | 'ccw' };
+  { kind: 'fixed'; dir: Dir } | { kind: 'circle'; turn: 'cw' | 'ccw' };
 
 export interface Plane {
   id: number;
@@ -42,6 +41,6 @@ export interface Plane {
   heading: HeadingCmd;
   pending: { heading: HeadingCmd; beacon: number } | null;
   altitude: number;
-  newAltitude: number;
+  targetAltitude: number;
   fuel: number;
 }

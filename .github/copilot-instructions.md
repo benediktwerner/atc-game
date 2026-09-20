@@ -17,10 +17,10 @@ later one wins:
 
 1. **`orig/`** — the original C source (NetBSD/Debian bsd-games lineage). Read-only
    historical reference. **Never modify anything under `orig/`.** It is the ground
-   truth for *what the original did*, and outranks `orig/MANPAGE` / `orig/atc.6.in`,
+   truth for _what the original did_, and outranks `orig/MANPAGE` / `orig/atc.6.in`,
    which document several features the code never implemented.
 2. **`SPEC.md`** — an exhaustive, language-neutral description of the original's
-   observable behaviour, derived from `orig/`. Authoritative for *game rules*.
+   observable behaviour, derived from `orig/`. Authoritative for _game rules_.
 3. **`PLAN.md`** — the implementation plan for the TypeScript port. **Authoritative
    overall**: where `PLAN.md` and `SPEC.md` conflict, `PLAN.md` wins.
 
@@ -30,15 +30,15 @@ determined from `orig/`, ask rather than inventing behaviour.
 
 Finding things in `orig/`:
 
-| file                  | contains                                                          |
-| --------------------- | ----------------------------------------------------------------- |
-| `update.c`            | simulation tick, movement, turning, loss conditions, plane spawning |
-| `input.c`             | command state machine, semantic validators, error strings          |
-| `graphics.c`          | radar/info/input/credit rendering, quit & loss screens             |
-| `grammar.y`, `lex.l`  | scenario-file parser and its validation rules                      |
-| `log.c`               | score file format and ranking                                      |
-| `def.h`, `struct.h`   | constants and data structures                                      |
-| `games/`              | the 15 scenario definitions + `Game_List` (order matters)          |
+| file                 | contains                                                            |
+| -------------------- | ------------------------------------------------------------------- |
+| `update.c`           | simulation tick, movement, turning, loss conditions, plane spawning |
+| `input.c`            | command state machine, semantic validators, error strings           |
+| `graphics.c`         | radar/info/input/credit rendering, quit & loss screens              |
+| `grammar.y`, `lex.l` | scenario-file parser and its validation rules                       |
+| `log.c`              | score file format and ranking                                       |
+| `def.h`, `struct.h`  | constants and data structures                                       |
+| `games/`             | the 15 scenario definitions + `Game_List` (order matters)           |
 
 ## Commands
 
@@ -84,7 +84,7 @@ a forced update (empty Return) and pause/resume can cleanly reset the interval.
   `t` takes only an absolute direction (`t<dir>`) or a towards-target (`tt<b|*|e|a><n>`).
 - **Message strings are part of the contract.** Every error and loss message is
   reproduced verbatim from the original (`SPEC.md` §7.1, §8.5) except `exceeded flight
-  ceiling.` and `Altitude not changed`. Tests assert them literally.
+ceiling.` and `Altitude not changed`. Tests assert them literally.
 - **Coordinates**: `y` increases **downward**; direction 0 is North and indices run
   clockwise. Each radar cell occupies **two screen columns** — cell `(x, y)` renders at
   column `2*x`. This 2:1 mapping is the most common source of off-by-one errors.

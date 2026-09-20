@@ -11,7 +11,9 @@ import {
 
 describe('directions', () => {
   it('maps the keyboard ring and displacement examples', () => {
-    expect(DIR_KEYS.split('').map(dirFromKey)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(DIR_KEYS.split('').map(dirFromKey)).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7,
+    ]);
     expect(dirFromKey('s')).toBeNull();
     expect(dirFromDxDy(1, 0)).toBe(2);
     expect(dirFromDxDy(0, -1)).toBe(0);

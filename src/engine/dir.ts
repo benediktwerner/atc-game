@@ -11,7 +11,8 @@ export function dirFromKey(key: string): Dir | null {
 }
 
 export function dirFromDxDy(dx: number, dy: number): Dir {
-  return (Math.trunc(Math.atan2(dy, dx) * 8 / (2 * Math.PI) + 2.5 + 8) % 8) as Dir;
+  return (Math.trunc((Math.atan2(dy, dx) * 8) / (2 * Math.PI) + 2.5 + 8) %
+    8) as Dir;
 }
 
 export function letterOf(plane: Plane): string {

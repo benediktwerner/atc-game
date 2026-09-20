@@ -1,0 +1,4 @@
+dist/
+orig/
+node_modules/
+src/data/*.atc

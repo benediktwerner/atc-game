@@ -1,5 +1,128 @@
-:root { color: #33ff33; background: #000; font: 16px/1.15 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-* { box-sizing: border-box; } body { margin: 0; } button, select, input { font: inherit; color: #33ff33; background: #000; border: 1px solid #33ff33; padding: .2rem .45rem; } button { cursor: pointer; } button:hover { color: #000; background: #33ff33; }
-main { padding: 1rem; } #game-shell { transform-origin: top left; width: max-content; } header { display: flex; justify-content: space-between; max-width: 84ch; margin-bottom: .5rem; } header button { margin-left: .5rem; }.play { display: flex; align-items: start; } .radar { white-space: pre; color: #1f7a1f; } .radar div { height: 1.15em; } .radar span { display: inline-block; width: 1ch; } .marked { position: relative; isolation: isolate; z-index: 0; color: #000; } .marked::before { position: absolute; z-index: -1; inset: 0 -1ch 0 0; background: #33ff33; content: ""; } .marked-altitude { position: relative; z-index: 1; color: #000; }
-#info { width: 24ch; height: calc(1.15em * 21); margin: 0 0 0 1ch; overflow-y: auto; white-space: pre; } #input { min-height: 3.45em; margin: .5rem 0 0; } aside { margin-top: .5rem; color: #1f7a1f; } .screen { max-width: 90ch; margin: 3rem auto; } .help { max-width: 72ch; } table { border-collapse: collapse; margin: .75rem 0; } td, th { padding: .2rem .55rem; text-align: left; }
-#overlay { position: fixed; inset: 0; display: grid; place-items: center; background: #000; } #overlay[hidden] { display: none; } .modal { text-align: center; } .modal button { margin: .3rem; }
+:root {
+  color: #33ff33;
+  background: #000;
+  font:
+    16px/1.15 ui-monospace,
+    'SF Mono',
+    Menlo,
+    Consolas,
+    monospace;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+select,
+input {
+  font: inherit;
+  color: #33ff33;
+  background: #000;
+  border: 1px solid #33ff33;
+  padding: 0.2rem 0.45rem;
+}
+button {
+  cursor: pointer;
+}
+button:hover {
+  color: #000;
+  background: #33ff33;
+}
+main {
+  padding: 1rem;
+}
+#game-shell {
+  transform-origin: top left;
+  width: max-content;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  max-width: 84ch;
+  margin-bottom: 0.5rem;
+}
+header button {
+  margin-left: 0.5rem;
+}
+.play {
+  display: flex;
+  align-items: start;
+}
+.radar {
+  white-space: pre;
+  color: #1f7a1f;
+}
+.radar div {
+  height: 1.15em;
+}
+.radar span {
+  display: inline-block;
+  width: 1ch;
+}
+.marked {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
+  color: #000;
+}
+.marked::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 -1ch 0 0;
+  background: #33ff33;
+  content: '';
+}
+.marked-altitude {
+  position: relative;
+  z-index: 1;
+  color: #000;
+}
+#info {
+  width: 24ch;
+  height: calc(1.15em * 21);
+  margin: 0 0 0 1ch;
+  overflow-y: auto;
+  white-space: pre;
+}
+#input {
+  min-height: 3.45em;
+  margin: 0.5rem 0 0;
+}
+aside {
+  margin-top: 0.5rem;
+  color: #1f7a1f;
+}
+.screen {
+  max-width: 90ch;
+  margin: 3rem auto;
+}
+.help {
+  max-width: 72ch;
+}
+table {
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+}
+td,
+th {
+  padding: 0.2rem 0.55rem;
+  text-align: left;
+}
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+#overlay[hidden] {
+  display: none;
+}
+.modal {
+  text-align: center;
+}
+.modal button {
+  margin: 0.3rem;
+}

@@ -28,7 +28,10 @@ describe('parseGame', () => {
       newplane: 10,
       width: 10,
       height: 8,
-      exits: [{ x: 0, y: 3, dir: 2 }, { x: 9, y: 4, dir: 6 }],
+      exits: [
+        { x: 0, y: 3, dir: 2 },
+        { x: 9, y: 4, dir: 6 },
+      ],
       beacons: [{ x: 4, y: 4 }],
       airports: [{ x: 6, y: 5, dir: 0 }],
     });
@@ -61,6 +64,8 @@ line: [ ( 0 0 ) ( 2 1 ) ];
   it('enforces the addressable-entry limit', () => {
     const beacons = Array.from({ length: 11 }, () => '( 2 2 )').join(' ');
     const source = `${VALID_GAME}\nbeacon: ${beacons};`;
-    expect(() => parseGame(source, 'many')).toThrow('"many": line 11: Too many beacons (max 10).');
+    expect(() => parseGame(source, 'many')).toThrow(
+      '"many": line 11: Too many beacons (max 10).',
+    );
   });
 });

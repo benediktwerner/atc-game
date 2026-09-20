@@ -1,8 +1,8 @@
 import { DX, DY, letterOf } from './dir';
 import type { GameDef } from './gamedef';
-import type { Dir, HeadingCmd, Plane } from './types';
 import type { Rng } from './rng';
 import { randInt } from './rng';
+import type { Dir, HeadingCmd, Plane } from './types';
 
 export const MAX_ALTITUDE = 9;
 export const ENTRY_ALTITUDE = 7;
@@ -37,7 +37,8 @@ export function stepToward(dir: Dir, target: Dir): Dir {
 }
 
 export function nextDirFrom(dir: Dir, cmd: HeadingCmd): Dir {
-  if (cmd.kind === 'circle') return (cmd.turn === 'cw' ? CIRCLE_CW : CIRCLE_CCW)[dir] as Dir;
+  if (cmd.kind === 'circle')
+    return (cmd.turn === 'cw' ? CIRCLE_CW : CIRCLE_CCW)[dir] as Dir;
   return stepToward(dir, cmd.dir);
 }
 
@@ -61,7 +62,8 @@ export function projectPath(plane: Plane, def: GameDef): PathStep[] {
     dir = nextDirFrom(dir, plane.heading);
     x += DX[dir];
     y += DY[dir];
-    if (x < 1 || x >= def.width - 1 || y < 1 || y >= def.height - 1) return path;
+    if (x < 1 || x >= def.width - 1 || y < 1 || y >= def.height - 1)
+      return path;
     const key = `${x},${y},${dir}`;
     if (seen.has(key)) return path;
     seen.add(key);
@@ -98,21 +100,46 @@ export class Game {
       if (originIndex < this.def.exits.length) {
         const origin = this.def.exits[originIndex];
         const probe = { x: origin.x, y: origin.y, altitude: ENTRY_ALTITUDE };
-        if (this.air.some((plane) => tooClose(plane, probe as Plane, SPAWN_CLEARANCE))) continue;
+        if (
+          this.air.some((plane) =>
+            tooClose(plane, probe as Plane, SPAWN_CLEARANCE),
+          )
+        )
+          continue;
         candidate = {
-          kind, status: 'marked', origType: 'exit', origNo: originIndex,
-          destType: destination.type, destNo: destination.no, x: origin.x, y: origin.y,
-          dir: origin.dir, heading: { kind: 'fixed', dir: origin.dir }, pending: null,
-          altitude: ENTRY_ALTITUDE, newAltitude: ENTRY_ALTITUDE, fuel: this.def.width + this.def.height,
+          kind,
+          status: 'marked',
+          origType: 'exit',
+          origNo: originIndex,
+          destType: destination.type,
+          destNo: destination.no,
+          x: origin.x,
+          y: origin.y,
+          dir: origin.dir,
+          heading: { kind: 'fixed', dir: origin.dir },
+          pending: null,
+          altitude: ENTRY_ALTITUDE,
+          targetAltitude: ENTRY_ALTITUDE,
+          fuel: this.def.width + this.def.height,
         };
       } else {
         const originNo = originIndex - this.def.exits.length;
         const origin = this.def.airports[originNo];
         candidate = {
-          kind, status: 'marked', origType: 'airport', origNo: originNo,
-          destType: destination.type, destNo: destination.no, x: origin.x, y: origin.y,
-          dir: origin.dir, heading: { kind: 'fixed', dir: origin.dir }, pending: null,
-          altitude: 0, newAltitude: 0, fuel: this.def.width + this.def.height,
+          kind,
+          status: 'marked',
+          origType: 'airport',
+          origNo: originNo,
+          destType: destination.type,
+          destNo: destination.no,
+          x: origin.x,
+          y: origin.y,
+          dir: origin.dir,
+          heading: { kind: 'fixed', dir: origin.dir },
+          pending: null,
+          altitude: 0,
+          targetAltitude: 0,
+          fuel: this.def.width + this.def.height,
         };
       }
       break;
@@ -128,7 +155,7 @@ export class Game {
     this.clock += 1;
     for (let index = 0; index < this.ground.length;) {
       const plane = this.ground[index];
-      if (plane.newAltitude > 0) {
+      if (plane.targetAltitude > 0) {
         this.ground.splice(index, 1);
         this.insert(this.air, plane);
       } else index += 1;
@@ -138,7 +165,7 @@ export class Game {
       if (plane.kind === 'prop' && this.clock % 2 === 1) continue;
       plane.fuel -= 1;
       if (plane.fuel < 0) return this.loss(plane, 'ran out of fuel.');
-      plane.altitude += Math.sign(plane.newAltitude - plane.altitude);
+      plane.altitude += Math.sign(plane.targetAltitude - plane.altitude);
       plane.dir = nextDir(plane);
       plane.x += DX[plane.dir];
       plane.y += DY[plane.dir];
@@ -147,49 +174,95 @@ export class Game {
         plane.pending = null;
         if (plane.status === 'unmarked') plane.status = 'marked';
       }
-      const destination = plane.destType === 'airport'
-        ? this.def.airports[plane.destNo]
-        : this.def.exits[plane.destNo];
-      if (!destination) return this.loss(plane, 'has a bizarre destination, get help!');
-      if (plane.destType === 'airport' && plane.x === destination.x && plane.y === destination.y && plane.altitude === 0) {
-        if (plane.dir !== destination.dir) return this.loss(plane, 'landed in the wrong direction.');
+      const destination =
+        plane.destType === 'airport'
+          ? this.def.airports[plane.destNo]
+          : this.def.exits[plane.destNo];
+      if (!destination)
+        return this.loss(plane, 'has a bizarre destination, get help!');
+      if (
+        plane.destType === 'airport' &&
+        plane.x === destination.x &&
+        plane.y === destination.y &&
+        plane.altitude === 0
+      ) {
+        if (plane.dir !== destination.dir)
+          return this.loss(plane, 'landed in the wrong direction.');
         gone.add(plane);
         continue;
       }
-      if (plane.destType === 'exit' && plane.x === destination.x && plane.y === destination.y) {
-        if (plane.altitude !== EXIT_ALTITUDE) return this.loss(plane, 'exited at the wrong altitude.');
+      if (
+        plane.destType === 'exit' &&
+        plane.x === destination.x &&
+        plane.y === destination.y
+      ) {
+        if (plane.altitude !== EXIT_ALTITUDE)
+          return this.loss(plane, 'exited at the wrong altitude.');
         gone.add(plane);
         continue;
       }
-      if (plane.altitude > MAX_ALTITUDE) return this.loss(plane, 'exceeded flight ceiling.');
+      if (plane.altitude > MAX_ALTITUDE)
+        return this.loss(plane, 'exceeded flight ceiling.');
       if (plane.altitude <= 0) {
-        if (this.def.airports.some((airport) => airport.x === plane.x && airport.y === plane.y)) {
-          return this.loss(plane, plane.destType === 'airport' ? 'landed at the wrong airport.' : 'landed instead of exited.');
+        if (
+          this.def.airports.some(
+            (airport) => airport.x === plane.x && airport.y === plane.y,
+          )
+        ) {
+          return this.loss(
+            plane,
+            plane.destType === 'airport'
+              ? 'landed at the wrong airport.'
+              : 'landed instead of exited.',
+          );
         }
         return this.loss(plane, 'crashed on the ground.');
       }
-      if (plane.x < 1 || plane.x >= this.def.width - 1 || plane.y < 1 || plane.y >= this.def.height - 1) {
-        if (this.def.exits.some((exit) => exit.x === plane.x && exit.y === plane.y)) {
-          return this.loss(plane, plane.destType === 'exit' ? 'exited via the wrong exit.' : 'exited instead of landed.');
+      if (
+        plane.x < 1 ||
+        plane.x >= this.def.width - 1 ||
+        plane.y < 1 ||
+        plane.y >= this.def.height - 1
+      ) {
+        if (
+          this.def.exits.some(
+            (exit) => exit.x === plane.x && exit.y === plane.y,
+          )
+        ) {
+          return this.loss(
+            plane,
+            plane.destType === 'exit'
+              ? 'exited via the wrong exit.'
+              : 'exited instead of landed.',
+          );
         }
         return this.loss(plane, 'illegally left the flight arena.');
       }
     }
     if (gone.size) {
       this.safePlanes += gone.size;
-      for (let index = this.air.length - 1; index >= 0; index -= 1) if (gone.has(this.air[index])) this.air.splice(index, 1);
+      for (let index = this.air.length - 1; index >= 0; index -= 1)
+        if (gone.has(this.air[index])) this.air.splice(index, 1);
     }
     for (let i = 0; i < this.air.length; i += 1) {
       for (let j = i + 1; j < this.air.length; j += 1) {
-        if (tooClose(this.air[i], this.air[j], COLLISION_DISTANCE)) return this.loss(this.air[i], `collided with plane '${letterOf(this.air[j])}'.`);
+        if (tooClose(this.air[i], this.air[j], COLLISION_DISTANCE))
+          return this.loss(
+            this.air[i],
+            `collided with plane '${letterOf(this.air[j])}'.`,
+          );
       }
     }
     if (this.random(this.def.newplane) === 0) this.addPlane();
     return null;
   }
 
-  private random(n: number): number { return randInt(this.rng, n); }
-  private loss(plane: Plane, message: string): GameOver { return { planeLetter: letterOf(plane), message }; }
+  private random(n: number): number {
+    return randInt(this.rng, n);
+  }
+  private loss(plane: Plane, message: string): GameOver {
+    return { planeLetter: letterOf(plane), message };
+  }
   private atBeacon(plane: Plane, beacon: number): boolean {
     const point = this.def.beacons[beacon];
     return point?.x === plane.x && point.y === plane.y;
@@ -202,7 +275,12 @@ export class Game {
   private nextPlaneId(): number | null {
     for (let offset = 0; offset < MAX_PLANES; offset += 1) {
       this.lastPlaneId = (this.lastPlaneId + 1) % MAX_PLANES;
-      if (![...this.air, ...this.ground].some((plane) => plane.id === this.lastPlaneId)) return this.lastPlaneId;
+      if (
+        ![...this.air, ...this.ground].some(
+          (plane) => plane.id === this.lastPlaneId,
+        )
+      )
+        return this.lastPlaneId;
     }
     return null;
   }

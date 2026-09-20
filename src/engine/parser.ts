@@ -2,7 +2,15 @@ import { dirFromKey } from './dir';
 import type { GameDef } from './gamedef';
 import type { Airport, Beacon, Dir, Exit, Line, Point } from './types';
 
-type Keyword = 'height' | 'width' | 'newplane' | 'update' | 'airport' | 'line' | 'exit' | 'beacon';
+type Keyword =
+  | 'height'
+  | 'width'
+  | 'newplane'
+  | 'update'
+  | 'airport'
+  | 'line'
+  | 'exit'
+  | 'beacon';
 type TokenKind = Keyword | 'integer' | 'direction' | 'punctuation' | 'eof';
 
 interface Token {
@@ -30,23 +38,31 @@ class Lexer {
   next(): Token {
     this.skipWhitespaceAndComments();
     const line = this.line;
-    if (this.offset >= this.source.length) return { kind: 'eof', value: '', line };
+    if (this.offset >= this.source.length)
+      return { kind: 'eof', value: '', line };
 
     const char = this.source[this.offset];
     if (char >= '0' && char <= '9') {
       const start = this.offset++;
       while (this.isDigit(this.source[this.offset])) this.offset++;
-      return { kind: 'integer', value: this.source.slice(start, this.offset), line };
+      return {
+        kind: 'integer',
+        value: this.source.slice(start, this.offset),
+        line,
+      };
     }
 
     if (this.isLetter(char)) {
-      const keyword = KEYWORDS.find((candidate) => this.source.startsWith(candidate, this.offset));
+      const keyword = KEYWORDS.find((candidate) =>
+        this.source.startsWith(candidate, this.offset),
+      );
       if (keyword !== undefined) {
         this.offset += keyword.length;
         return { kind: keyword, value: keyword, line };
       }
       this.offset++;
-      if (dirFromKey(char) !== null) return { kind: 'direction', value: char, line };
+      if (dirFromKey(char) !== null)
+        return { kind: 'direction', value: char, line };
       return { kind: 'punctuation', value: char, line };
     }
 
@@ -63,7 +79,11 @@ class Lexer {
         this.offset++;
         this.line++;
       } else if (char === '#') {
-        while (this.offset < this.source.length && this.source[this.offset] !== '\n') this.offset++;
+        while (
+          this.offset < this.source.length &&
+          this.source[this.offset] !== '\n'
+        )
+          this.offset++;
       } else {
         return;
       }
@@ -83,8 +103,12 @@ class GameParser {
   private readonly lexer: Lexer;
   private current: Token;
   private readonly errors: string[] = [];
-  private readonly values: Partial<Record<'height' | 'width' | 'newplane' | 'update', number>> = {};
-  private readonly defined = new Set<'height' | 'width' | 'newplane' | 'update'>();
+  private readonly values: Partial<
+    Record<'height' | 'width' | 'newplane' | 'update', number>
+  > = {};
+  private readonly defined = new Set<
+    'height' | 'width' | 'newplane' | 'update'
+  >();
   private readonly exits: Exit[] = [];
   private readonly beacons: Beacon[] = [];
   private readonly airports: Airport[] = [];
@@ -144,21 +168,30 @@ class GameParser {
 
   private validateDefinitions(): void {
     for (const key of ['width', 'height', 'update', 'newplane'] as const) {
-      if (!this.defined.has(key)) this.error(this.current.line, `'${key}' undefined.`);
+      if (!this.defined.has(key))
+        this.error(this.current.line, `'${key}' undefined.`);
     }
   }
 
   private parseSection(): void {
     const section = this.current.kind;
-    if (section !== 'beacon' && section !== 'exit' && section !== 'airport' && section !== 'line') {
-      this.syntax(`expected a game section, found ${this.describe(this.current)}`);
+    if (
+      section !== 'beacon' &&
+      section !== 'exit' &&
+      section !== 'airport' &&
+      section !== 'line'
+    ) {
+      this.syntax(
+        `expected a game section, found ${this.describe(this.current)}`,
+      );
     }
     this.advance();
     this.expect(':');
 
     let entries = 0;
     while (this.current.value !== ';') {
-      if (this.current.kind === 'eof') this.syntax('expected `;` before end of file');
+      if (this.current.kind === 'eof')
+        this.syntax('expected `;` before end of file');
       entries++;
       if (section === 'beacon') this.parseBeacon();
       else if (section === 'exit') this.parseExit();
@@ -219,35 +252,45 @@ class GameParser {
   }
 
   private integer(): number {
-    if (this.current.kind !== 'integer') this.syntax(`expected an integer, found ${this.describe(this.current)}`);
+    if (this.current.kind !== 'integer')
+      this.syntax(`expected an integer, found ${this.describe(this.current)}`);
     const value = Number(this.current.value);
     this.advance();
     return value;
   }
 
   private direction(): Dir {
-    if (this.current.kind !== 'direction') this.syntax(`expected a direction, found ${this.describe(this.current)}`);
+    if (this.current.kind !== 'direction')
+      this.syntax(`expected a direction, found ${this.describe(this.current)}`);
     const direction = dirFromKey(this.current.value);
-    if (direction === null) this.syntax(`expected a direction, found ${this.describe(this.current)}`);
+    if (direction === null)
+      this.syntax(`expected a direction, found ${this.describe(this.current)}`);
     this.advance();
     return direction;
   }
 
   private validateInteriorPoint(point: Point, line: number): void {
-    if (point.x < 1 || point.x >= (this.values.width ?? 0) - 1) this.error(line, 'X value out of range.');
-    if (point.y < 1 || point.y >= (this.values.height ?? 0) - 1) this.error(line, 'Y value out of range.');
+    if (point.x < 1 || point.x >= (this.values.width ?? 0) - 1)
+      this.error(line, 'X value out of range.');
+    if (point.y < 1 || point.y >= (this.values.height ?? 0) - 1)
+      this.error(line, 'Y value out of range.');
   }
 
   private validateExit(exit: Exit, line: number): void {
     const width = this.values.width ?? 0;
     const height = this.values.height ?? 0;
-    if (exit.x !== 0 && exit.x !== width - 1 && exit.y !== 0 && exit.y !== height - 1) {
+    if (
+      exit.x !== 0 &&
+      exit.x !== width - 1 &&
+      exit.y !== 0 &&
+      exit.y !== height - 1
+    ) {
       this.error(line, 'edge value not on edge.');
     }
 
     const x = exit.x === 0 ? 0 : exit.x === width - 1 ? 2 : 1;
     const y = exit.y === 0 ? 0 : exit.y === height - 1 ? 2 : 1;
-    const valid = (
+    const valid =
       (x === 0 && y === 0 && exit.dir === 3) ||
       (x === 0 && y === 1 && exit.dir >= 1 && exit.dir <= 3) ||
       (x === 0 && y === 2 && exit.dir === 1) ||
@@ -256,8 +299,7 @@ class GameParser {
       (x === 1 && y === 2 && (exit.dir <= 1 || exit.dir >= 7)) ||
       (x === 2 && y === 0 && exit.dir === 5) ||
       (x === 2 && y === 1 && exit.dir >= 5) ||
-      (x === 2 && y === 2 && exit.dir === 7)
-    );
+      (x === 2 && y === 2 && exit.dir === 7);
     if (!valid) this.error(line, 'Bad direction for entrance at exit.');
   }
 
@@ -266,21 +308,32 @@ class GameParser {
     this.validateLinePoint(p2, line);
     const dx = Math.abs(p2.x - p1.x);
     const dy = Math.abs(p2.y - p1.y);
-    if (dx !== dy && dx !== 0 && dy !== 0) this.error(line, 'Bad line endpoints.');
+    if (dx !== dy && dx !== 0 && dy !== 0)
+      this.error(line, 'Bad line endpoints.');
   }
 
   private validateLinePoint(point: Point, line: number): void {
-    if (point.x < 0 || point.x >= (this.values.width ?? 0)) this.error(line, 'X value out of range.');
-    if (point.y < 0 || point.y >= (this.values.height ?? 0)) this.error(line, 'Y value out of range.');
+    if (point.x < 0 || point.x >= (this.values.width ?? 0))
+      this.error(line, 'X value out of range.');
+    if (point.y < 0 || point.y >= (this.values.height ?? 0))
+      this.error(line, 'Y value out of range.');
   }
 
-  private addLimited<T>(items: T[], item: T, label: 'exits' | 'beacons' | 'airports', line: number): void {
+  private addLimited<T>(
+    items: T[],
+    item: T,
+    label: 'exits' | 'beacons' | 'airports',
+    line: number,
+  ): void {
     if (items.length === 10) this.error(line, `Too many ${label} (max 10).`);
     items.push(item);
   }
 
   private expect(value: string): void {
-    if (this.current.value !== value) this.syntax(`expected \`${value}\`, found ${this.describe(this.current)}`);
+    if (this.current.value !== value)
+      this.syntax(
+        `expected \`${value}\`, found ${this.describe(this.current)}`,
+      );
     this.advance();
   }
 
@@ -288,8 +341,15 @@ class GameParser {
     this.current = this.lexer.next();
   }
 
-  private isDefinition(kind: TokenKind): kind is 'height' | 'width' | 'newplane' | 'update' {
-    return kind === 'height' || kind === 'width' || kind === 'newplane' || kind === 'update';
+  private isDefinition(
+    kind: TokenKind,
+  ): kind is 'height' | 'width' | 'newplane' | 'update' {
+    return (
+      kind === 'height' ||
+      kind === 'width' ||
+      kind === 'newplane' ||
+      kind === 'update'
+    );
   }
 
   private describe(token: Token): string {
