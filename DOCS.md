@@ -351,7 +351,9 @@ line in step with the real interval.
 ### 6.3 Input area
 
 Three rows: the echoed command with a block cursor, the `^` caret underlining a
-rejected token, and the message or `?` hint row. The board is a two-column grid — radar
+rejected token, and the message or `?` hint row. A rejected command clears the editor
+but stays echoed on the first row (`Editor.errorText`) so the caret still points at the
+offending token; the echo disappears on the next keystroke. The board is a two-column grid — radar
 and info panel on top, input area bottom-left and the credit line `ATC - by Ed James`
 bottom-right, under the info panel.
 

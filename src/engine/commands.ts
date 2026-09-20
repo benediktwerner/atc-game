@@ -32,6 +32,8 @@ export interface Editor {
   col: number;
   message: string;
   caretUnder: { col: number; len: number } | null;
+  /** Text of a rejected command, kept on screen so `caretUnder` has something to point at. */
+  errorText: string;
 }
 
 interface Draft {
@@ -66,6 +68,7 @@ export class CommandEditor {
     col: 0,
     message: '',
     caretUnder: null,
+    errorText: '',
   };
 
   constructor(private readonly game: Game) {}
@@ -76,16 +79,19 @@ export class CommandEditor {
     this.editor.col = 0;
     this.editor.message = '';
     this.editor.caretUnder = null;
+    this.editor.errorText = '';
   }
 
   feed(token: Token): 'accepted' | 'invalid' | 'forced-update' {
     if (token === '?') {
       this.editor.message = hints[this.editor.state];
       this.editor.caretUnder = null;
+      this.editor.errorText = '';
       return 'accepted';
     }
     this.editor.message = '';
     this.editor.caretUnder = null;
+    this.editor.errorText = '';
     if (token === 'BACKSPACE') return this.backspace() ? 'accepted' : 'invalid';
     if (token === 'CTRL_U') {
       this.reset();
@@ -104,14 +110,16 @@ export class CommandEditor {
     if (transition.state === null) {
       const forced = this.editor.frags.length === 1;
       const error = forced ? null : this.apply();
-      if (error) {
-        const problem = this.editor.frags[error.index];
-        this.editor.message = error.message;
-        this.editor.caretUnder = { col: problem.col, len: problem.text.length };
+      if (!error) {
+        this.resetAfterCommand('');
+        return forced ? 'forced-update' : 'accepted';
       }
+      const problem = this.editor.frags[error.index];
+      const text = this.editor.frags.map((fragment) => fragment.text).join('');
       this.resetAfterCommand(
-        error ? this.editor.message : '',
-        this.editor.caretUnder,
+        error.message,
+        { col: problem.col, len: problem.text.length },
+        text,
       );
       return forced ? 'forced-update' : 'accepted';
     }
@@ -122,12 +130,14 @@ export class CommandEditor {
   private resetAfterCommand(
     message: string,
     caretUnder: { col: number; len: number } | null = null,
+    errorText = '',
   ): void {
     this.editor.frags = [];
     this.editor.state = 'Start';
     this.editor.col = 0;
     this.editor.caretUnder = caretUnder;
     this.editor.message = message;
+    this.editor.errorText = errorText;
   }
 
   private backspace(): boolean {
