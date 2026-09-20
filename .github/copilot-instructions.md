@@ -5,9 +5,10 @@ controller) console game, shipped as a static web page.
 
 ## Repository state
 
-The repository is currently **spec-only**. `orig/`, `SPEC.md` and `PLAN.md` exist;
-`package.json`, `src/` and `test/` do **not** exist yet. `PLAN.md` §13 is the
-implementation order and §14 is the acceptance checklist — treat them as the backlog.
+The application is scaffolded and implemented as a Vite static site. `src/engine/`
+contains the headless game rules, `src/ui/` contains the DOM application, `src/data/`
+contains verbatim scenario files, and `test/` contains Vitest coverage. `PLAN.md` §14
+remains the acceptance checklist for behaviour changes.
 
 ## Document hierarchy (read this before changing behaviour)
 
@@ -41,16 +42,14 @@ Finding things in `orig/`:
 
 ## Commands
 
-Once scaffolded per `PLAN.md` §2:
-
 ```bash
 npm install
 npm run dev                  # Vite dev server
 npm run build                # static bundle -> dist/
-npx vitest run               # full test suite
-npx vitest run test/update.test.ts              # one file
-npx vitest run test/update.test.ts -t "circle"  # one test by name
-npx vitest                                       # watch mode
+npm test                     # full test suite
+npx vitest run test/engine.test.ts               # one file
+npx vitest run test/engine.test.ts -t "directions" # one test by name
+npx vitest                   # watch mode
 ```
 
 There is no linter configured. `SPEC.md` is Prettier-formatted markdown (padded
