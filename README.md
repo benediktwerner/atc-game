@@ -23,6 +23,13 @@ npm run build
 
 The result is written to `dist/` and can be served by any static-file server.
 
+## Deployment
+
+Pushing to `master` runs `.github/workflows/deploy.yml`, which checks formatting, runs
+the tests, builds the bundle and publishes it to GitHub Pages:
+<https://benediktwerner.github.io/atc-game/>. The Vite `base` is relative, so the
+bundle also works from any other path.
+
 ## Development
 
 ```bash

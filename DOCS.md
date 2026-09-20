@@ -406,6 +406,11 @@ npm run format:check
 Prettier is the only style tool; there is no linter. `src/data/*.atc` and `dist/` are
 excluded from formatting.
 
+`.github/workflows/deploy.yml` runs `format:check`, `test` and `build` on every push to
+`master` and publishes `dist/` to GitHub Pages, so a formatting or test failure blocks
+the deployment. `vite.config.ts` sets a relative `base` so the bundle works from the
+project-pages subpath.
+
 ---
 
 ## 8. Deviations from the original BSD `atc`
