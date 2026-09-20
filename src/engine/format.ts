@@ -1,7 +1,6 @@
 import { DEG, letterOf } from './dir';
 import { LOW_FUEL } from './game';
-import type { GameDef } from './gamedef';
-import type { Plane } from './types';
+import type { GameDef, Plane } from './types';
 
 export function formatPlaneLine(plane: Plane, _def: GameDef): string {
   const destination = plane.destType === 'airport' ? 'A' : 'E';

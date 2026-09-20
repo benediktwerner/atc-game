@@ -1,6 +1,6 @@
 import { letterOf } from '../engine/dir';
 import type { Game } from '../engine/game';
-import type { GameDef } from '../engine/gamedef';
+import type { GameDef } from '../engine/types';
 
 export function staticRadar(def: GameDef): string[][] {
   const rows = Array.from({ length: def.height }, () =>

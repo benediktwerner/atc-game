@@ -1,8 +1,7 @@
 import { DX, DY, letterOf } from './dir';
-import type { GameDef } from './gamedef';
 import type { Rng } from './rng';
 import { randInt } from './rng';
-import type { Dir, HeadingCmd, Plane } from './types';
+import type { Dir, GameDef, HeadingCmd, Plane } from './types';
 
 export const MAX_ALTITUDE = 9;
 export const ENTRY_ALTITUDE = 7;

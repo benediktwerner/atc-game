@@ -1,6 +1,5 @@
 import { dirFromKey } from './dir';
-import type { GameDef } from './gamedef';
-import type { Airport, Beacon, Dir, Exit, Line, Point } from './types';
+import type { Airport, Beacon, Dir, Exit, GameDef, Line, Point } from './types';
 
 type Keyword =
   | 'height'

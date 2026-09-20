@@ -1,5 +1,17 @@
 export type Dir = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
+export interface GameDef {
+  name: string;
+  updateSecs: number;
+  newplane: number;
+  width: number;
+  height: number;
+  exits: Exit[];
+  beacons: Beacon[];
+  airports: Airport[];
+  lines: Line[];
+}
+
 export interface Point {
   x: number;
   y: number;
