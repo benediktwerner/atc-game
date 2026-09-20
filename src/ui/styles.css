@@ -176,6 +176,17 @@ th {
   align-items: center;
   gap: 0.6rem;
 }
+.menu-screen > .level-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.6rem;
+  margin-top: 0.85rem;
+  color: #1f7a1f;
+}
+.level-stats b {
+  font-weight: normal;
+  color: #33ff33;
+}
 .summary {
   line-height: 1.7;
 }

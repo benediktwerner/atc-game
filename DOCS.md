@@ -379,8 +379,11 @@ shows `0:00`.
 
 ### 6.5 Main menu
 
-The start screen shows the title, a level picker with a Start button, a "How to play"
-section and the high-score table. The help section keeps a two-paragraph summary of the
+The start screen shows the title, a level picker with a Start button, a stats line for
+the selected level, a "How to play" section and the high-score table. The stats line is
+re-rendered whenever the picker changes and reports the radar size, the seconds between
+moves (`update`), the spawn chance (`newplane`, as `1 in N` moves) and the number of
+exits, beacons and airports. The help section keeps a two-paragraph summary of the
 objective visible and hides the full reference behind a collapsed `Commands and rules`
 disclosure, so the menu stays short. That reference covers the commands, direction and
 editing keys, worked examples, the radar symbols, the info-panel line format, the

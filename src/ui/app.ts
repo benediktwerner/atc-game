@@ -54,9 +54,15 @@ export class App {
     const options = BUILTIN_LEVELS.map(
       (level) => `<option value="${level.name}">${level.name}</option>`,
     ).join('');
-    this.root.innerHTML = `<main class="screen menu-screen"><header class="title"><h1>ATC</h1><p>air traffic controller</p></header><p class="start-row"><label for="level">Level</label> <select id="level">${options}</select> <button id="start">Start</button></p>${HELP}<h2>High scores</h2>${scoreTable(loadScores())}</main>`;
+    this.root.innerHTML = `<main class="screen menu-screen"><header class="title"><h1>ATC</h1><p>air traffic controller</p></header><p class="start-row"><label for="level">Level</label> <select id="level">${options}</select> <button id="start">Start</button></p><p class="level-stats" id="level-stats"></p>${HELP}<h2>High scores</h2>${scoreTable(loadScores())}</main>`;
+    const select = this.root.querySelector<HTMLSelectElement>('#level')!;
+    const stats = this.root.querySelector<HTMLElement>('#level-stats')!;
+    select.onchange = () => {
+      stats.innerHTML = levelStats(select.value);
+    };
+    stats.innerHTML = levelStats(select.value);
     this.root.querySelector<HTMLButtonElement>('#start')!.onclick = () =>
-      this.start(this.root.querySelector<HTMLSelectElement>('#level')!.value);
+      this.start(select.value);
   }
 
   private start(name: string): void {
@@ -314,6 +320,25 @@ function escapeHtml(value: string): string {
         "'": '&#39;',
       })[char]!,
   );
+}
+
+/** One-line summary of the selected level, with units spelled out. */
+function levelStats(name: string): string {
+  const builtin = BUILTIN_LEVELS.find((level) => level.name === name);
+  if (!builtin) return '';
+  try {
+    const def = parseLevel(builtin.source, name);
+    return [
+      `<b>${def.width} &times; ${def.height}</b> cells`,
+      `ticks every <b>${def.updateSecs}</b> seconds`,
+      `new plane on <b>1 in ${def.newplane}</b> ticks`,
+      `<b>${def.exits.length}</b> exits, <b>${def.beacons.length}</b> beacons, <b>${def.airports.length}</b> airports`,
+    ]
+      .map((item) => `<span>${item}</span>`)
+      .join('');
+  } catch {
+    return '';
+  }
 }
 
 function rankNote(index: number): string {
