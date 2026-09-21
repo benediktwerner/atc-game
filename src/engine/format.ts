@@ -1,8 +1,8 @@
 import { DEG, letterOf } from './dir';
 import { LOW_FUEL } from './game';
-import type { LevelDef, Plane } from './types';
+import type { Plane } from './types';
 
-export function formatPlaneLine(plane: Plane, _def: LevelDef): string {
+export function formatPlaneLine(plane: Plane): string {
   const destination = plane.destType === 'airport' ? 'A' : 'E';
   let line = `${letterOf(plane)}${plane.altitude}${plane.fuel < LOW_FUEL ? '*' : ' '}${destination}${plane.destNo}: `;
   const heading = plane.pending?.heading ?? plane.heading;

@@ -1,4 +1,6 @@
 :root {
+  /* One radar row; the info panel is sized in these units so it matches the radar. */
+  --row: 1.15em;
   color: #33ff33;
   background: #000;
   font:
@@ -57,7 +59,7 @@ header button {
   color: #1f7a1f;
 }
 .radar div {
-  height: 1.15em;
+  height: var(--row);
 }
 .radar span {
   display: inline-block;
@@ -85,7 +87,9 @@ header button {
   display: flex;
   flex-direction: column;
   width: 24ch;
-  height: calc(1.15em * 21);
+  /* --radar-rows is set from the level height, so the panel is exactly as tall as
+     the radar next to it on every level. */
+  height: calc(var(--row) * var(--radar-rows, 21));
 }
 #info-head {
   margin: 0;

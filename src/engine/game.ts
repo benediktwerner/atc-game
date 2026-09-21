@@ -24,9 +24,11 @@ export interface PathStep {
   dir: Dir;
 }
 
+/** Circling tables preserve the original's odd-to-even heading convergence. */
 export const CIRCLE_CW = [2, 3, 4, 5, 6, 7, 0, 0] as const;
 export const CIRCLE_CCW = [6, 0, 0, 1, 2, 3, 4, 5] as const;
 
+/** Shortest-path turn toward a fixed heading, clamped to +-MAX_TURN_PER_MOVE. */
 export function stepToward(dir: Dir, target: Dir): Dir {
   let delta = target - dir;
   if (delta > 4) delta -= 8;
@@ -45,7 +47,10 @@ export function nextDir(plane: Plane): Dir {
   return nextDirFrom(plane.dir, plane.heading);
 }
 
-export function tooClose(a: Plane, b: Plane, distance: number): boolean {
+/** Anything with a radar position; `tooClose` never needs a whole plane. */
+type Position = Pick<Plane, 'x' | 'y' | 'altitude'>;
+
+export function tooClose(a: Position, b: Position, distance: number): boolean {
   return (
     Math.abs(a.altitude - b.altitude) <= distance &&
     Math.abs(a.x - b.x) <= distance &&
@@ -99,11 +104,7 @@ export class Game {
       if (originIndex < this.def.exits.length) {
         const origin = this.def.exits[originIndex];
         const probe = { x: origin.x, y: origin.y, altitude: ENTRY_ALTITUDE };
-        if (
-          this.air.some((plane) =>
-            tooClose(plane, probe as Plane, SPAWN_CLEARANCE),
-          )
-        )
+        if (this.air.some((plane) => tooClose(plane, probe, SPAWN_CLEARANCE)))
           continue;
         candidate = {
           kind,
@@ -152,6 +153,21 @@ export class Game {
 
   update(): GameOver | null {
     this.clock += 1;
+    this.takeOff();
+    const gone = new Set<Plane>();
+    const lost = this.fly(gone);
+    // Credited even when this tick also ends the game: a plane that reached its
+    // destination before another plane died still arrived safely.
+    this.commitArrivals(gone);
+    if (lost) return lost;
+    const collision = this.collision();
+    if (collision) return collision;
+    if (this.random(this.def.newplane) === 0) this.addPlane();
+    return null;
+  }
+
+  /** Moves every ground plane cleared for take-off into the air list. */
+  private takeOff(): void {
     for (let index = 0; index < this.ground.length;) {
       const plane = this.ground[index];
       if (plane.targetAltitude > 0) {
@@ -159,7 +175,10 @@ export class Game {
         this.insert(this.air, plane);
       } else index += 1;
     }
-    const gone = new Set<Plane>();
+  }
+
+  /** Advances every airborne plane, collecting safe arrivals into `gone`. */
+  private fly(gone: Set<Plane>): GameOver | null {
     for (const plane of this.air) {
       if (plane.kind === 'prop' && this.clock % 2 === 1) continue;
       plane.fuel -= 1;
@@ -238,11 +257,17 @@ export class Game {
         return this.loss(plane, 'illegally left the flight arena.');
       }
     }
-    if (gone.size) {
-      this.safePlanes += gone.size;
-      for (let index = this.air.length - 1; index >= 0; index -= 1)
-        if (gone.has(this.air[index])) this.air.splice(index, 1);
-    }
+    return null;
+  }
+
+  private commitArrivals(gone: Set<Plane>): void {
+    if (!gone.size) return;
+    this.safePlanes += gone.size;
+    for (let index = this.air.length - 1; index >= 0; index -= 1)
+      if (gone.has(this.air[index])) this.air.splice(index, 1);
+  }
+
+  private collision(): GameOver | null {
     for (let i = 0; i < this.air.length; i += 1) {
       for (let j = i + 1; j < this.air.length; j += 1) {
         if (tooClose(this.air[i], this.air[j], COLLISION_DISTANCE))
@@ -252,7 +277,6 @@ export class Game {
           );
       }
     }
-    if (this.random(this.def.newplane) === 0) this.addPlane();
     return null;
   }
 

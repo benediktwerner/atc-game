@@ -36,6 +36,13 @@ const KEYWORDS: readonly Keyword[] = [
   'exit',
   'beacon',
 ];
+
+/**
+ * Exits, beacons and airports are addressed by a single digit in the command grammar,
+ * so a level may not define more than ten of any of them.
+ */
+const MAX_ENTRIES = 10;
+
 class Lexer {
   private offset = 0;
   private line = 1;
@@ -60,8 +67,11 @@ class Lexer {
     }
 
     if (this.isLetter(char)) {
-      const keyword = KEYWORDS.find((candidate) =>
-        this.source.startsWith(candidate, this.offset),
+      // A keyword only counts when it is a whole word, so `widthx` is not `width`.
+      const keyword = KEYWORDS.find(
+        (candidate) =>
+          this.source.startsWith(candidate, this.offset) &&
+          !this.isLetter(this.source[this.offset + candidate.length]),
       );
       if (keyword !== undefined) {
         this.offset += keyword.length;
@@ -101,8 +111,11 @@ class Lexer {
     return char !== undefined && char >= '0' && char <= '9';
   }
 
-  private isLetter(char: string): boolean {
-    return (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z');
+  private isLetter(char: string | undefined): boolean {
+    return (
+      char !== undefined &&
+      ((char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z'))
+    );
   }
 }
 
@@ -110,6 +123,7 @@ class LevelParser {
   private readonly lexer: Lexer;
   private current: Token;
   private readonly errors: string[] = [];
+  private readonly reportedLimits = new Set<string>();
   private readonly values: Partial<
     Record<'height' | 'width' | 'newplane' | 'update', number>
   > = {};
@@ -332,7 +346,15 @@ class LevelParser {
     label: 'exits' | 'beacons' | 'airports',
     line: number,
   ): void {
-    if (items.length === 10) this.error(line, `Too many ${label} (max 10).`);
+    if (items.length >= MAX_ENTRIES) {
+      // Report once per section, then drop the extras so the parsed level never
+      // carries unaddressable entries even if a caller ignores the thrown errors.
+      if (!this.reportedLimits.has(label)) {
+        this.reportedLimits.add(label);
+        this.error(line, `Too many ${label} (max ${MAX_ENTRIES}).`);
+      }
+      return;
+    }
     items.push(item);
   }
 

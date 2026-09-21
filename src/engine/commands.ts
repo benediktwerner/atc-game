@@ -1,6 +1,6 @@
 import { dirFromDxDy, dirFromKey, idFromLetter } from './dir';
 import type { Game } from './game';
-import { projectPath } from './game';
+import { projectPath, MAX_ALTITUDE } from './game';
 import type { HeadingCmd, MarkStatus, Plane } from './types';
 
 type StateId =
@@ -322,7 +322,7 @@ export class CommandEditor {
       const altitude =
         plane.altitude + (draft.relDir === 'up' ? amount : -amount);
       if (altitude < 0) return 'Altitude would be too low';
-      if (altitude > 9) return 'Altitude would be too high';
+      if (altitude > MAX_ALTITUDE) return 'Altitude would be too high';
       draft.altitude = altitude;
     } else if (state === 'DelayNum')
       return this.delayAtBeacon(plane, draft, Number(token));

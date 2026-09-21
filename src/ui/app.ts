@@ -11,7 +11,7 @@ import {
   lastName,
   loadScores,
   previewScores,
-  qualifies,
+  qualifiesUnderSomeName,
   saveScore,
   type ScoreCandidate,
   type ScoreEntry,
@@ -49,9 +49,7 @@ export class App {
   }
 
   private startScreen(): void {
-    this.clearTimer();
-    this.game = null;
-    this.finishedGame = null;
+    this.teardown();
     const options = BUILTIN_LEVELS.map(
       (level) => `<option value="${level.name}">${level.name}</option>`,
     ).join('');
@@ -69,20 +67,25 @@ export class App {
   private start(name: string): void {
     const builtin = BUILTIN_LEVELS.find((item) => item.name === name);
     if (!builtin) return;
+    // Stop the outgoing game before its DOM is replaced, so a failure below cannot
+    // leave the previous game ticking against detached nodes.
+    this.teardown();
+    let game: Game;
     try {
-      this.game = new Game(parseLevel(builtin.source, name));
+      game = new Game(parseLevel(builtin.source, name));
     } catch (error) {
       this.root.textContent = `Unable to load ${name}: ${error instanceof Error ? error.message : String(error)}`;
       return;
     }
+    this.game = game;
     this.levelName = name;
     this.editor = new CommandEditor(this.game);
-    this.finishedGame = null;
     this.startedAt = Date.now();
     this.pausedMs = 0;
     this.pauseStartedAt = 0;
     this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>Level: ${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><div id="info-panel"><pre id="info-head"></pre><div id="tick"><span id="tick-fill"></span></div><pre id="info"></pre></div><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
     this.board = this.root.querySelector('#board');
+    this.board!.style.setProperty('--radar-rows', String(game.def.height));
     this.gameShell = this.root.querySelector('#game-shell');
     this.radar = new Radar(this.root.querySelector('#radar')!, this.game.def);
     this.root.querySelector<HTMLButtonElement>('#pause')!.onclick = () =>
@@ -116,26 +119,24 @@ export class App {
       return;
     }
     let token: string | null = null;
-    if (event.key === 'Enter') token = 'ENTER';
+    if (event.ctrlKey && event.key.toLowerCase() === 'u') token = 'CTRL_U';
+    // Every other modifier combination belongs to the browser. Without this the
+    // `Turn` branch below would read Cmd-D as a direction and swallow the shortcut.
+    else if (event.ctrlKey || event.metaKey) return;
+    else if (event.key === 'Enter') token = 'ENTER';
     else if (event.key === ' ') {
       event.preventDefault();
       this.clearTimer();
       this.tick();
       return;
     } else if (event.key === 'Backspace') token = 'BACKSPACE';
-    else if (event.ctrlKey && event.key.toLowerCase() === 'u') token = 'CTRL_U';
     else if (event.key === 'Escape') {
       event.preventDefault();
       this.pause();
       return;
     } else if (this.editor!.editor.state === 'Turn')
       token = directionTokenForCode(event.code) ?? event.key;
-    else if (
-      !event.ctrlKey &&
-      !event.metaKey &&
-      event.key.length === 1 &&
-      event.key.charCodeAt(0) < 128
-    )
+    else if (event.key.length === 1 && event.key.charCodeAt(0) < 128)
       token = event.key;
     if (!token) return;
     event.preventDefault();
@@ -211,42 +212,35 @@ export class App {
   private end(plane: string | null, message: string): void {
     if (!this.game) return;
     this.clearTimer();
-    const realTimeSec = Math.floor(
-      (Date.now() - this.startedAt - this.pausedMs) / 1000,
-    );
-    const candidate: ScoreCandidate = {
-      level: this.levelName,
-      planes: this.game.safePlanes,
-      ticks: this.game.clock,
-      realTimeSec,
-    };
-    this.showScoreScreen({ candidate, plane, message });
+    this.showScoreScreen({ candidate: this.candidate(), plane, message });
   }
   private awaitScoreScreen(plane: string | null, message: string): void {
     if (!this.game) return;
     this.clearTimer();
-    const realTimeSec = Math.floor(
-      (Date.now() - this.startedAt - this.pausedMs) / 1000,
-    );
-    this.finishedGame = {
-      candidate: {
-        level: this.levelName,
-        planes: this.game.safePlanes,
-        ticks: this.game.clock,
-        realTimeSec,
-      },
-      plane,
-      message,
-    };
+    this.finishedGame = { candidate: this.candidate(), plane, message };
     this.root.querySelector('#input')!.textContent =
       `${plane ? `Plane '${plane}' ${message}` : message}\n\nPress Space for high scores.`;
   }
+  private candidate(): ScoreCandidate {
+    return {
+      level: this.levelName,
+      planes: this.game!.safePlanes,
+      ticks: this.game!.clock,
+      realTimeSec: this.elapsedSec(),
+    };
+  }
+  /** Real seconds played, excluding paused time — including a pause still open. */
+  private elapsedSec(): number {
+    const now = Date.now();
+    const paused =
+      this.pausedMs + (this.pauseStartedAt ? now - this.pauseStartedAt : 0);
+    return Math.max(0, Math.floor((now - this.startedAt - paused) / 1000));
+  }
   private showScoreScreen(finished: FinishedGame): void {
     const { candidate, plane, message } = finished;
-    this.finishedGame = null;
-    const canSave = qualifies(candidate, '__new_name__');
-    this.game = null;
+    const canSave = qualifiesUnderSomeName(candidate);
     const level = this.levelName;
+    this.teardown();
     const initialName = lastName();
     const initial = canSave
       ? previewScores(candidate, initialName)
@@ -297,6 +291,7 @@ export class App {
     this.gameShell.style.transform = '';
     const width = this.gameShell.offsetWidth;
     const height = this.gameShell.offsetHeight;
+    if (!width || !height) return;
     const parentStyle = getComputedStyle(this.gameShell.parentElement!);
     const availableWidth = Math.max(
       0,
@@ -312,6 +307,17 @@ export class App {
     );
     const scale = Math.min(availableWidth / width, availableHeight / height);
     this.gameShell.style.transform = `scale(${scale})`;
+  }
+  /** Stops the running game and drops every reference to its (outgoing) DOM. */
+  private teardown(): void {
+    this.clearTimer();
+    this.game = null;
+    this.editor = null;
+    this.radar = null;
+    this.board = null;
+    this.gameShell = null;
+    this.finishedGame = null;
+    this.pauseStartedAt = 0;
   }
   private clearTimer(): void {
     this.tickBar?.cancel();

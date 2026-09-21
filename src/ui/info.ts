@@ -8,6 +8,6 @@ export function renderInfo(
 ): void {
   head.textContent = `Time: ${String(game.clock).padEnd(4)} Safe: ${game.safePlanes}`;
   list.textContent = [...game.air, ...game.ground]
-    .map((plane) => formatPlaneLine(plane, game.def))
+    .map((plane) => formatPlaneLine(plane))
     .join('\n');
 }

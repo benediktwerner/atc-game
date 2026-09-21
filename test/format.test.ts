@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_LEVELS } from '../src/data';
 import { formatPlaneLine, timestr } from '../src/engine/format';
-import { parseLevel } from '../src/engine/parser';
 import type { Plane } from '../src/engine/types';
 
 describe('formatPlaneLine', () => {
@@ -24,9 +22,7 @@ describe('formatPlaneLine', () => {
       fuel: 20,
     };
 
-    expect(
-      formatPlaneLine(plane, parseLevel(BUILTIN_LEVELS[0].source, 'default')),
-    ).toBe('A7 E0: ↑8');
+    expect(formatPlaneLine(plane)).toBe('A7 E0: ↑8');
   });
 });
 

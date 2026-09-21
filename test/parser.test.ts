@@ -61,6 +61,13 @@ line: [ ( 0 0 ) ( 2 1 ) ];
     );
   });
 
+  it('does not read a keyword out of a longer word', () => {
+    const typo = VALID_LEVEL.replace('width =', 'widthx =');
+    expect(() => parseLevel(typo, 'typo')).toThrow(
+      '"typo": line 4: expected a game section, found `w`',
+    );
+  });
+
   it('enforces the addressable-entry limit', () => {
     const beacons = Array.from({ length: 11 }, () => '( 2 2 )').join(' ');
     const source = `${VALID_LEVEL}\nbeacon: ${beacons};`;

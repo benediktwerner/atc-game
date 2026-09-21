@@ -30,7 +30,7 @@ Two layers with a hard boundary:
 | `engine/dir.ts`      | direction tables, `dirFromDxDy`, plane-letter conversions         |
 | `engine/rng.ts`      | `Rng` type and `randInt`                                          |
 | `engine/parser.ts`   | level-file lexer, parser and validator                            |
-| `engine/game.ts`     | `Game`: state, update loop, spawning, loss detection              |
+| `engine/game.ts`     | `Game`: state, update loop, spawning, loss detection, turn tables |
 | `engine/commands.ts` | `CommandEditor`: command grammar, validation, application         |
 | `engine/format.ts`   | info-line and duration formatting                                 |
 | `ui/app.ts`          | wires `Game` to the DOM; owns the clock and screen lifecycle      |
@@ -117,7 +117,9 @@ One tick, in this exact order:
    - If the plane is now on the beacon of its pending delayed command, the pending
      heading becomes the active heading and the plane is re-marked if it was unmarked.
    - Arrival and loss conditions are evaluated (§3.4).
-4. Safely arrived planes are removed and counted.
+4. Safely arrived planes are removed and counted. This happens **even when step 3
+   ended the game**: a plane that reached its destination before another plane died
+   still counts towards the score.
 5. Every pair of airborne planes is checked for collision.
 6. With probability `1/newplane`, a new plane is spawned (§3.5).
 
@@ -130,7 +132,11 @@ A fixed heading is approached along the shortest rotation, clamped to ±2 steps 
 per move. Circling uses **lookup tables, not a formula**: they reproduce the original's
 quirk that a plane on a diagonal heading converges onto a cardinal one instead of
 circling evenly. Do not "simplify" them into arithmetic; a test asserts that the
-counter-clockwise table is the exact mirror of the clockwise one.
+counter-clockwise table is the exact mirror of the clockwise one. `stepToward`,
+`CIRCLE_CW`/`CIRCLE_CCW` and `nextDirFrom` live in `engine/game.ts` next to
+`MAX_TURN_PER_MOVE`; `engine/dir.ts` holds only the direction/letter tables. Keep them
+in one place — a second copy elsewhere would be dead code that tests could pass
+against while the game used the other.
 
 A plane carries two independent heading fields: `heading` (executing now) and
 `pending` (deferred until a beacon). A delayed command therefore does **not** freeze
@@ -273,7 +279,8 @@ These strings are part of the contract and are asserted literally by tests:
 ## 5. Level files
 
 Level files use the original `atc` level-file syntax. `#` starts a comment that runs
-to end of line; whitespace is insignificant.
+to end of line; whitespace is insignificant. Keywords are matched as whole words, so
+`widthx` is not `width`.
 
 ```
 update = <int>;        seconds of real time per tick
@@ -340,6 +347,10 @@ appends ` ↑<n>` / ` ↓<n>`.
 
 The progress line is driven by the same code that arms the update timer, so a forced
 update and pause/resume keep it in step with the real interval.
+
+The panel is exactly as tall as the radar beside it — `ui/app.ts` sets a
+`--radar-rows` custom property from the level's `height` — and scrolls when there are
+more planes than rows.
 
 ### 6.3 Input area
 

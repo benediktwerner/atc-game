@@ -56,6 +56,18 @@ export interface ScorePreview {
   index: number;
 }
 
+function toEntry(candidate: ScoreCandidate, name: string): ScoreEntry {
+  return {
+    ...candidate,
+    name: normalizeName(name),
+    dateISO: candidate.dateISO ?? new Date().toISOString(),
+  };
+}
+
+function normalizeName(name: string): string {
+  return name.trim().slice(0, 16);
+}
+
 /**
  * Project the candidate into the table without persisting it, so the score screen
  * can show where a pending entry would land.
@@ -65,11 +77,7 @@ export function previewScores(
   name: string,
   scores = loadScores(),
 ): ScorePreview {
-  const entry: ScoreEntry = {
-    ...candidate,
-    name: name.trim().slice(0, 16),
-    dateISO: candidate.dateISO ?? new Date().toISOString(),
-  };
+  const entry = toEntry(candidate, name);
   const others = [...scores];
   const existing = others.findIndex(
     (score) => score.name === entry.name && score.level === entry.level,
@@ -82,16 +90,22 @@ export function previewScores(
   return { scores: table, index: table.indexOf(entry) };
 }
 
-export function qualifies(
+/**
+ * Whether the result could be saved under *some* name. The table holds one entry per
+ * name+level, so a fresh name is always available; this therefore only fails when the
+ * table is full and every entry in it already beats the candidate.
+ */
+export function qualifiesUnderSomeName(
   candidate: ScoreCandidate,
-  name: string,
   scores = loadScores(),
 ): boolean {
-  return previewScores(candidate, name, scores).index >= 0;
+  if (scores.length < NUM_SCORES) return true;
+  const entry = toEntry(candidate, '');
+  return scores.some((score) => compare(entry, score) < 0);
 }
 
 export function saveScore(candidate: ScoreCandidate, name: string): boolean {
-  const normalized = name.trim().slice(0, 16);
+  const normalized = normalizeName(name);
   const { scores, index } = previewScores(candidate, normalized);
   if (index < 0) return false;
   try {
