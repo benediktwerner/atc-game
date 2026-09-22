@@ -19,9 +19,8 @@ type StateId =
 type TargetType = 'beacon' | 'exit' | 'airport';
 type Token = string | 'ENTER';
 
-interface Frag {
+export interface Frag {
   text: string;
-  col: number;
   state: StateId;
   ch: Token;
 }
@@ -29,11 +28,14 @@ interface Frag {
 export interface Editor {
   frags: Frag[];
   state: StateId;
-  col: number;
+  /** A `?` hint, or the message of the last rejected command. */
   message: string;
-  caretUnder: { col: number; len: number } | null;
-  /** Text of a rejected command, kept on screen so `caretUnder` has something to point at. */
-  errorText: string;
+  /**
+   * A rejected command: its fragments, kept on screen so the caret has something to
+   * point at, and the index of the offending one. Screen columns are deliberately
+   * not computed here — laying the echo out is `ui/input.ts`'s job.
+   */
+  rejected: { frags: Frag[]; index: number } | null;
 }
 
 interface Draft {
@@ -73,34 +75,25 @@ export class CommandEditor {
   readonly editor: Editor = {
     frags: [],
     state: 'Start',
-    col: 0,
     message: '',
-    caretUnder: null,
-    errorText: '',
+    rejected: null,
   };
 
   constructor(private readonly game: Game) {}
 
   reset(): void {
-    this.editor.frags = [];
-    this.editor.state = 'Start';
-    this.editor.col = 0;
-    this.editor.message = '';
-    this.editor.caretUnder = null;
-    this.editor.errorText = '';
+    this.resetAfterCommand('');
   }
 
   /** Invalid keystrokes are silently ignored; only a forced update is signalled. */
   feed(token: Token): 'accepted' | 'forced-update' {
     if (token === '?') {
       this.editor.message = hints[this.editor.state];
-      this.editor.caretUnder = null;
-      this.editor.errorText = '';
+      this.editor.rejected = null;
       return 'accepted';
     }
     this.editor.message = '';
-    this.editor.caretUnder = null;
-    this.editor.errorText = '';
+    this.editor.rejected = null;
     if (token === 'BACKSPACE') {
       this.backspace();
       return 'accepted';
@@ -111,27 +104,17 @@ export class CommandEditor {
     }
     const transition = this.transition(this.editor.state, token);
     if (!transition) return 'accepted';
-    const fragment: Frag = {
+    this.editor.frags.push({
       text: transition.text,
-      col: this.editor.col,
       state: this.editor.state,
       ch: token,
-    };
-    this.editor.frags.push(fragment);
-    this.editor.col += transition.text.length;
+    });
     if (transition.state === null) {
       const forced = this.editor.frags.length === 1;
       const error = forced ? null : this.apply();
-      if (!error) {
-        this.resetAfterCommand('');
-        return forced ? 'forced-update' : 'accepted';
-      }
-      const problem = this.editor.frags[error.index];
-      const text = this.editor.frags.map((fragment) => fragment.text).join('');
       this.resetAfterCommand(
-        error.message,
-        { col: problem.col, len: problem.text.length },
-        text,
+        error?.message ?? '',
+        error ? { frags: this.editor.frags, index: error.index } : null,
       );
       return forced ? 'forced-update' : 'accepted';
     }
@@ -141,22 +124,18 @@ export class CommandEditor {
 
   private resetAfterCommand(
     message: string,
-    caretUnder: { col: number; len: number } | null = null,
-    errorText = '',
+    rejected: Editor['rejected'] = null,
   ): void {
+    // Replaced, never emptied in place: `rejected` may hold the outgoing array.
     this.editor.frags = [];
     this.editor.state = 'Start';
-    this.editor.col = 0;
-    this.editor.caretUnder = caretUnder;
     this.editor.message = message;
-    this.editor.errorText = errorText;
+    this.editor.rejected = rejected;
   }
 
   private backspace(): void {
     const fragment = this.editor.frags.pop();
-    if (!fragment) return;
-    this.editor.state = fragment.state;
-    this.editor.col = fragment.col;
+    if (fragment) this.editor.state = fragment.state;
   }
 
   private transition(

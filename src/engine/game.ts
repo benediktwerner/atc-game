@@ -11,7 +11,6 @@ export const MAX_PLANES = 26;
 export const SPAWN_CLEARANCE = 4;
 export const COLLISION_DISTANCE = 1;
 export const MAX_TURN_PER_MOVE = 2;
-export const NUM_SCORES = 18;
 
 export interface GameOver {
   planeLetter: string | null;
@@ -221,6 +220,9 @@ export class Game {
         gone.add(plane);
         continue;
       }
+      // Defensive only: `targetAltitude` never exceeds MAX_ALTITUDE (the grammar
+      // takes a single digit and relative climbs are range-checked) and altitude
+      // only ever steps toward it, so this cannot currently fire.
       if (plane.altitude > MAX_ALTITUDE)
         return this.loss(plane, 'exceeded flight ceiling.');
       if (plane.altitude <= 0) {
@@ -292,20 +294,26 @@ export class Game {
     const point = this.def.beacons[beacon];
     return point?.x === plane.x && point.y === plane.y;
   }
+  /**
+   * Keeps a list sorted by plane id. That is not arrival order, because ids are
+   * handed out in a rotation — see DOCS.md §6.2.
+   */
   private insert(list: Plane[], plane: Plane): void {
     const index = list.findIndex((other) => other.id > plane.id);
     if (index === -1) list.push(plane);
     else list.splice(index, 0, plane);
   }
+  /**
+   * Letters are handed out in a rotation rather than reusing the lowest free one, so
+   * a freed letter takes a while to reappear. Returns null when all 26 are in use.
+   */
   private nextPlaneId(): number | null {
+    const used = new Set(
+      [...this.air, ...this.ground].map((plane) => plane.id),
+    );
     for (let offset = 0; offset < MAX_PLANES; offset += 1) {
       this.lastPlaneId = (this.lastPlaneId + 1) % MAX_PLANES;
-      if (
-        ![...this.air, ...this.ground].some(
-          (plane) => plane.id === this.lastPlaneId,
-        )
-      )
-        return this.lastPlaneId;
+      if (!used.has(this.lastPlaneId)) return this.lastPlaneId;
     }
     return null;
   }

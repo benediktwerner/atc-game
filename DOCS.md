@@ -62,7 +62,9 @@ clock and update loop.
 `x` increases to the right, `y` increases **downward**. Direction `0` is North and
 indices run clockwise. Direction keys are the eight physical keys surrounding `s`, so
 they work regardless of keyboard layout (`ui/keyboard.ts` maps `KeyW`, `KeyE`, … while
-the command editor is expecting a direction).
+the command editor is expecting a direction). Outside that state the typed character
+is used; either way only single ASCII characters become command tokens, so bare
+modifiers and navigation keys keep their default browser behaviour.
 
 | dir | key | dx  | dy  | degrees | compass |
 | --- | --- | --- | --- | ------- | ------- |
@@ -98,7 +100,6 @@ Plane letters: propeller planes are `A`–`Z`, jets are `a`–`z`, both derived 
 | `SPAWN_CLEARANCE`    | 4     | required separation when entering at an exit         |
 | `COLLISION_DISTANCE` | 1     | planes within this distance in x, y and altitude die |
 | `MAX_TURN_PER_MOVE`  | 2     | 90° maximum turn per move                            |
-| `NUM_SCORES`         | 18    | high-score table size                                |
 
 A plane's initial fuel is `width + height` moves.
 
@@ -363,6 +364,11 @@ turning or has a pending command. A pending command appends ` @ B<n>`, an unmark
 ignored plane with no detail shows `---------`, and an altitude change in progress
 appends ` ↑<n>` / ` ↓<n>`.
 
+Within each group planes are listed by **plane id**, not by arrival time: ids are
+handed out in a rotation through 0–25, so the list is stable while a plane is in the
+air but reorders when the rotation wraps. This keeps a plane's line from jumping
+around as other planes come and go.
+
 The progress line is driven by the same code that arms the update timer, so a forced
 update and pause/resume keep it in step with the real interval. Starting a level
 spawns the first plane, renders the opening position and only then arms the clock, so
@@ -376,17 +382,30 @@ more planes than rows.
 ### 6.3 Input area
 
 Three rows: the echoed command with a block cursor, the `^` caret underlining a
-rejected token, and the message or `?` hint row. A rejected command clears the editor
-but stays echoed, so the caret still points at the offending token; the echo disappears
-on the next keystroke. The board is a two-column grid — radar and info panel on top,
-input area bottom-left and the credit line `ATC - by Ed James` bottom-right, under the
-info panel.
+rejected token, and the message or `?` hint row. Fragment texts carry their own
+leading space, which the caret skips so it starts under the visible token. A rejected
+command clears the editor but stays echoed, so the caret still points at the offending
+token; the echo disappears on the next keystroke. The board is a two-column grid —
+radar and info panel on top, input area bottom-left and the credit line
+`ATC - by Ed James` bottom-right, under the info panel.
+
+`CommandEditor` exposes the command as a list of fragments plus, after a rejection,
+the index of the offending one. **It computes no screen columns**: turning fragments
+into an echo line and a caret row is `ui/input.ts`'s job, which keeps the engine free
+of layout. The `?` hint strings stay in `engine/commands.ts` because they enumerate
+the grammar's valid next characters per state, not a rendering choice.
+
+The whole game shell is scaled with a CSS transform to fill the viewport. The factor
+is deliberately **not** clamped at 1: the board is a fixed character grid, so without
+upscaling a game would be uncomfortably small on a large display.
 
 ### 6.4 Pause, game over and scores
 
 Escape or the Pause button hides the board completely behind an overlay offering
 Continue / Restart / Quit; the game also auto-pauses when the tab is hidden, and
-paused time is excluded from the recorded real time.
+paused time is excluded from the recorded real time. Once a game has ended, pausing is
+refused and the Pause button is disabled — the board is still on screen, so without
+that guard Continue would restart the clock on a finished game.
 
 On a loss the message is shown and Space opens the score screen, which reports planes
 safe, ticks and real time, lists the high-score table and offers buttons to replay the
@@ -401,7 +420,8 @@ to qualify when the table is full and every entry beats it, in which case the sc
 says so instead of offering the form.
 
 Scores live in `localStorage` (keys `atc.scores.v1` and `atc.lastName.v1`),
-keep the best `NUM_SCORES` entries and at most one entry per name+level, and are ranked
+keep the best `NUM_SCORES` (18, defined in `ui/scores.ts` — it is a UI limit, not a
+game rule) entries and at most one entry per name+level, and are ranked
 by planes safe, then ticks, then lowest real time.
 
 Real-time durations are formatted as `<d>d+<hh>hrs`, `<h>:<mm>:<ss>` or `<m>:<ss>`; the

@@ -1,5 +1,3 @@
-import { NUM_SCORES } from '../engine/game';
-
 export interface ScoreEntry {
   name: string;
   level: string;
@@ -14,7 +12,13 @@ export interface ScoreCandidate extends Omit<ScoreEntry, 'name' | 'dateISO'> {
 const KEY = 'atc.scores.v1';
 const NAME_KEY = 'atc.lastName.v1';
 
-const compare = (a: ScoreEntry, b: ScoreEntry): number =>
+/** High-score table size. */
+export const NUM_SCORES = 18;
+
+/** The fields a result is ranked by; a candidate has them before it has a name. */
+type Rankable = Pick<ScoreEntry, 'planes' | 'ticks' | 'realTimeSec'>;
+
+const compare = (a: Rankable, b: Rankable): number =>
   b.planes - a.planes || b.ticks - a.ticks || a.realTimeSec - b.realTimeSec;
 
 export function loadScores(): ScoreEntry[] {
@@ -100,8 +104,7 @@ export function qualifiesUnderSomeName(
   scores = loadScores(),
 ): boolean {
   if (scores.length < NUM_SCORES) return true;
-  const entry = toEntry(candidate, '');
-  return scores.some((score) => compare(entry, score) < 0);
+  return scores.some((score) => compare(candidate, score) < 0);
 }
 
 export function saveScore(candidate: ScoreCandidate, name: string): boolean {

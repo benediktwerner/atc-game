@@ -51,7 +51,8 @@ export class App {
   private startScreen(): void {
     this.teardown();
     const options = BUILTIN_LEVELS.map(
-      (level) => `<option value="${level.name}">${level.name}</option>`,
+      (level) =>
+        `<option value="${escapeHtml(level.name)}">${escapeHtml(level.name)}</option>`,
     ).join('');
     this.root.innerHTML = `<main class="screen menu-screen"><header class="title"><h1>ATC</h1><p>air traffic controller</p><p class="source-link"><a href="https://github.com/benediktwerner/atc-game" target="_blank" rel="noreferrer">Source code on GitHub</a></p></header><p class="start-row"><label for="level">Level</label> <select id="level">${options}</select> <button id="start">Start</button></p><p class="level-stats" id="level-stats"></p>${HELP}<h2>High scores</h2>${scoreTable(loadScores())}</main>`;
     const select = this.root.querySelector<HTMLSelectElement>('#level')!;
@@ -83,7 +84,7 @@ export class App {
     this.startedAt = Date.now();
     this.pausedMs = 0;
     this.pauseStartedAt = 0;
-    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>Level: ${name}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><div id="info-panel"><pre id="info-head"></pre><div id="tick"><span id="tick-fill"></span></div><pre id="info"></pre></div><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
+    this.root.innerHTML = `<main class="game"><div id="game-shell"><header><b>Level: ${escapeHtml(name)}</b><span><button id="pause">Pause (Esc)</button></span></header><section id="board"><div id="radar"></div><div id="info-panel"><pre id="info-head"></pre><div id="tick"><span id="tick-fill"></span></div><pre id="info"></pre></div><pre id="input"></pre><aside>ATC - by Ed James</aside></section></div><div id="overlay" hidden></div></main>`;
     this.board = this.root.querySelector('#board');
     this.board!.style.setProperty('--radar-rows', String(game.def.height));
     this.gameShell = this.root.querySelector('#game-shell');
@@ -136,10 +137,17 @@ export class App {
       event.preventDefault();
       this.pause();
       return;
-    } else if (this.editor!.editor.state === 'Turn')
-      token = directionTokenForCode(event.code) ?? event.key;
-    else if (event.key.length === 1 && event.key.charCodeAt(0) < 128)
-      token = event.key;
+    } else {
+      // In `Turn` the *physical* ring of keys around `s` is what matters, so the
+      // layout-independent `code` wins there; everywhere else the typed character
+      // is what counts. Either way only single ASCII characters are commands, so
+      // bare modifiers and navigation keys keep their default behaviour.
+      const key =
+        (this.editor!.editor.state === 'Turn'
+          ? directionTokenForCode(event.code)
+          : null) ?? event.key;
+      if (key.length === 1 && key.charCodeAt(0) < 128) token = key;
+    }
     if (!token) return;
     event.preventDefault();
     const result = this.editor!.feed(token);
@@ -185,7 +193,7 @@ export class App {
     renderInput(this.root.querySelector('#input')!, this.editor.editor);
   }
   private pause(): void {
-    if (!this.game || this.pauseStartedAt) return;
+    if (!this.game || this.pauseStartedAt || this.finishedGame) return;
     this.clearTimer();
     this.pauseStartedAt = Date.now();
     this.board!.style.visibility = 'hidden';
@@ -220,6 +228,8 @@ export class App {
     if (!this.game) return;
     this.clearTimer();
     this.finishedGame = { candidate: this.candidate(), plane, message };
+    const pauseButton = this.root.querySelector<HTMLButtonElement>('#pause');
+    if (pauseButton) pauseButton.disabled = true;
     this.root.querySelector('#input')!.textContent =
       `${plane ? `Plane '${plane}' ${message}` : message}\n\nPress Space for high scores.`;
   }
@@ -288,6 +298,11 @@ export class App {
     this.root.querySelector<HTMLButtonElement>('#menu')!.onclick = () =>
       this.startScreen();
   }
+  /**
+   * Scales the whole board to fill the viewport. The factor is deliberately not
+   * clamped at 1: the board is a fixed character grid, so on a large display an
+   * unscaled game would be tiny.
+   */
   private fitGameToViewport(): void {
     if (!this.gameShell) return;
     this.gameShell.style.transform = '';

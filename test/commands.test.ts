@@ -20,11 +20,18 @@ describe('command editor errors', () => {
     for (const key of keys.split(' ')) editor.feed(key);
   };
 
+  const rejected = (): { text: string; underlined: string } => {
+    const { frags, index } = editor.editor.rejected!;
+    return {
+      text: frags.map((fragment) => fragment.text).join(''),
+      underlined: frags[index].text,
+    };
+  };
+
   it('keeps the rejected command on screen for the caret to point at', () => {
     feed('z t w ENTER');
     expect(editor.editor.message).toBe('Unknown Plane');
-    expect(editor.editor.errorText).toBe('z: turn to 0');
-    expect(editor.editor.caretUnder).toEqual({ col: 0, len: 2 });
+    expect(rejected()).toEqual({ text: 'z: turn to 0', underlined: 'z:' });
     expect(editor.editor.frags).toHaveLength(0);
   });
 
@@ -48,19 +55,17 @@ describe('command editor errors', () => {
     });
     feed('a t t e 9 ENTER');
     expect(editor.editor.message).toBe('Unknown exit');
-    expect(editor.editor.errorText).toBe('a: turn towards exit #9');
-    const caret = editor.editor.caretUnder!;
-    expect(
-      editor.editor.errorText.slice(caret.col, caret.col + caret.len),
-    ).toBe('9');
+    expect(rejected()).toEqual({
+      text: 'a: turn towards exit #9',
+      underlined: '9',
+    });
   });
 
   it('clears the echoed command once typing resumes', () => {
     feed('z m ENTER');
-    expect(editor.editor.errorText).toBe('z: mark');
+    expect(rejected().text).toBe('z: mark');
     feed('a');
-    expect(editor.editor.errorText).toBe('');
-    expect(editor.editor.caretUnder).toBeNull();
+    expect(editor.editor.rejected).toBeNull();
   });
 });
 
