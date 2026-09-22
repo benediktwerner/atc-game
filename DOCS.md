@@ -27,28 +27,33 @@ Two layers with a hard boundary:
 | file                  | contains                                                          |
 | --------------------- | ----------------------------------------------------------------- |
 | `engine/types.ts`     | `Dir`, `LevelDef`, `Plane`, `HeadingCmd` and related domain types |
+| `engine/constants.ts` | altitudes, fuel, clearances and turn limits                       |
 | `engine/dir.ts`       | direction tables, `dirFromDxDy`, plane-letter conversions         |
 | `engine/rng.ts`       | `Rng` type and `randInt`                                          |
+| `engine/motion.ts`    | turn tables, `stepToward`, `tooClose`, `projectPath`              |
 | `engine/parser.ts`    | level-file lexer, parser and validator                            |
-| `engine/game.ts`      | `Game`: state, update loop, spawning, loss detection, turn tables |
-| `engine/commands.ts`  | `CommandEditor`: command grammar, validation, application         |
-| `engine/format.ts`    | info-line and duration formatting                                 |
-| `ui/app.ts`           | screen lifecycle, the clock and keyboard routing                  |
+| `engine/game.ts`      | `Game`: state, update loop, spawning, arrivals, loss detection    |
+| `engine/grammar.ts`   | command grammar: states, `?` hints and fragment texts             |
+| `engine/commands.ts`  | `CommandEditor` plus `applyCommand`: validation and application   |
+| `ui/app.ts`           | screen routing: menu, game and score screens                      |
+| `ui/session.ts`       | `GameSession`: one played game, its clock and its keystrokes      |
 | `ui/screens/menu.ts`  | start screen: level picker, level stats, help, high scores        |
 | `ui/screens/game.ts`  | `GameScreen`: board markup, tick bar, pause overlay, fit-to-view  |
 | `ui/screens/score.ts` | game-over screen: result, save form, high-score table             |
 | `ui/html.ts`          | auto-escaping `html` tagged template and `setHtml`                |
 | `ui/help.html`        | help text for the start screen, imported with `?raw`              |
 | `ui/radar.ts`         | static radar layer plus the span-grid renderer                    |
-| `ui/info.ts`          | plane info panel                                                  |
+| `ui/info.ts`          | plane info panel and its `formatPlaneLine` rows                   |
+| `ui/format.ts`        | duration formatting for the score screen                          |
 | `ui/input.ts`         | input echo, error caret and message rows                          |
-| `ui/keyboard.ts`      | key event to engine token mapping                                 |
-| `ui/scores.ts`        | `localStorage` high-score table                                   |
+| `ui/keyboard.ts`      | key events to typed intents and editor tokens                     |
+| `storage/scores.ts`   | `localStorage` high-score table                                   |
 | `data/*.atc`          | the 15 built-in levels, imported with Vite's `?raw` suffix        |
 
-`ui/app.ts` owns the clock: a self-chaining `setTimeout` (never `setInterval`), so a
-forced update and pause/resume can cleanly reset the interval. It holds no element
-references of its own; each screen module owns its markup and its lookups into it.
+`ui/session.ts` owns the clock: a self-chaining `setTimeout` (never `setInterval`), so
+a forced update and pause/resume can cleanly reset the interval. Neither it nor
+`ui/app.ts` holds element references of its own; each screen module owns its markup
+and its lookups into it.
 
 **Markup convention.** All HTML is built with the `html` tagged template from
 `ui/html.ts` and installed with `setHtml`, which accepts only the `Html` values that
@@ -151,8 +156,9 @@ per move. Circling uses **lookup tables, not a formula**: they reproduce the ori
 quirk that a plane on a diagonal heading converges onto a cardinal one instead of
 circling evenly. Do not "simplify" them into arithmetic; a test asserts that the
 counter-clockwise table is the exact mirror of the clockwise one. `stepToward`,
-`CIRCLE_CW`/`CIRCLE_CCW` and `nextDirFrom` live in `engine/game.ts` next to
-`MAX_TURN_PER_MOVE`; `engine/dir.ts` holds only the direction/letter tables. Keep them
+`CIRCLE_CW`/`CIRCLE_CCW` and `nextDirFrom` live in `engine/motion.ts`, with
+`MAX_TURN_PER_MOVE` in `engine/constants.ts`; `engine/dir.ts` holds only the
+direction/letter tables. Keep them
 in one place — a second copy elsewhere would be dead code that tests could pass
 against while the game used the other.
 
@@ -409,8 +415,9 @@ radar and info panel on top, input area bottom-left and the credit line
 `CommandEditor` exposes the command as a list of fragments plus, after a rejection,
 the index of the offending one. **It computes no screen columns**: turning fragments
 into an echo line and a caret row is `ui/input.ts`'s job, which keeps the engine free
-of layout. The `?` hint strings stay in `engine/commands.ts` because they enumerate
-the grammar's valid next characters per state, not a rendering choice.
+of layout. The `?` hint strings stay in `engine/grammar.ts` beside the state machine
+because they enumerate the grammar's valid next characters per state, not a rendering
+choice.
 
 The whole game shell is scaled with a CSS transform to fill the viewport. The factor
 is deliberately **not** clamped at 1: the board is a fixed character grid, so without
@@ -437,7 +444,7 @@ to qualify when the table is full and every entry beats it, in which case the sc
 says so instead of offering the form.
 
 Scores live in `localStorage` (keys `atc.scores.v1` and `atc.lastName.v1`),
-keep the best `NUM_SCORES` (18, defined in `ui/scores.ts` — it is a UI limit, not a
+keep the best `NUM_SCORES` (18, defined in `storage/scores.ts` — it is a presentation limit, not a
 game rule) entries and at most one entry per name+level, and are ranked
 by planes safe, then ticks, then lowest real time.
 

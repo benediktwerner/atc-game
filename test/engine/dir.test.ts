@@ -4,7 +4,7 @@ import {
   dirFromDxDy,
   dirFromKey,
   idFromLetter,
-} from '../src/engine/dir';
+} from '../../src/engine/dir';
 
 describe('directions', () => {
   it('maps the keyboard ring and displacement examples', () => {

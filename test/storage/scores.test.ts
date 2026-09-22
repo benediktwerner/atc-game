@@ -6,7 +6,7 @@ import {
   qualifiesUnderSomeName,
   saveScore,
   type ScoreEntry,
-} from '../src/ui/scores';
+} from '../../src/storage/scores';
 
 const entry = (
   name: string,

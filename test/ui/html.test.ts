@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtml, html, raw } from '../src/ui/html';
+import { escapeHtml, html, raw } from '../../src/ui/html';
 
 describe('html', () => {
   it('escapes interpolated values', () => {

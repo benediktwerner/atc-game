@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_LEVELS } from '../src/data';
-import { parseLevel } from '../src/engine/parser';
+import { BUILTIN_LEVELS } from '../../src/data';
+import { parseLevel } from '../../src/engine/parser';
 
 const VALID_LEVEL = `
 update = 5;
@@ -15,6 +15,7 @@ line: [ ( 0 0 ) ( 7 7 ) ];
 
 describe('parseLevel', () => {
   it('parses every bundled level', () => {
+    expect(BUILTIN_LEVELS).toHaveLength(15);
     for (const level of BUILTIN_LEVELS) {
       expect(parseLevel(level.source, level.name).name).toBe(level.name);
     }

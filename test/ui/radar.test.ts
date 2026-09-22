@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_LEVELS } from '../src/data';
-import { parseLevel } from '../src/engine/parser';
-import { staticRadar } from '../src/ui/radar';
+import { BUILTIN_LEVELS } from '../../src/data';
+import { parseLevel } from '../../src/engine/parser';
+import { staticRadar } from '../../src/ui/radar';
 
 const render = (source: string): string[] =>
   staticRadar(parseLevel(source, 'test')).map((row) => row.join(''));

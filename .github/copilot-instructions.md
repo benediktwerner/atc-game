@@ -20,8 +20,9 @@ message strings, level-file syntax, screen layout or the deviation list must upd
 ## Repository state
 
 The application is implemented as a Vite static site. `src/engine/` contains the
-headless game rules, `src/ui/` contains the DOM application, `src/data/` contains
-verbatim level files, and `test/` contains Vitest coverage.
+headless game rules, `src/ui/` contains the DOM application, `src/storage/` contains
+`localStorage` persistence, `src/data/` contains verbatim level files, and `test/`
+mirrors those folders with Vitest coverage.
 
 ## Commands
 
@@ -30,8 +31,8 @@ npm install
 npm run dev                  # Vite dev server
 npm run build                # tsc --noEmit + static bundle -> dist/
 npm test                     # full test suite
-npx vitest run test/engine.test.ts                 # one file
-npx vitest run test/engine.test.ts -t "directions"  # one test by name
+npx vitest run test/engine/game.test.ts              # one file
+npx vitest run test/engine/motion.test.ts -t "turning"  # one test by name
 npx vitest                   # watch mode
 npm run format               # Prettier
 npm run format:check
@@ -53,8 +54,10 @@ Two layers with a hard boundary:
   state + editor state**, re-run after every update and every keystroke. Do not port
   the original's incremental "erase planes, move, redraw planes" approach.
 
-`src/ui/app.ts` owns the clock: a self-chaining `setTimeout` (never `setInterval`), so
-a forced update (empty Return) and pause/resume can cleanly reset the interval.
+`src/ui/session.ts` owns one played game and its clock: a self-chaining `setTimeout`
+(never `setInterval`), so a forced update (empty Return) and pause/resume can cleanly
+reset the interval. `src/ui/app.ts` only routes between the menu, game and score
+screens.
 
 `src/data/*.atc` are **verbatim copies of the original level files**, imported with
 Vite's `?raw` suffix and parsed at runtime by `src/engine/parser.ts`. Do not reformat,

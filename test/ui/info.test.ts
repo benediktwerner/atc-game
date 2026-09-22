@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Game } from '../src/engine/game';
-import { parseLevel } from '../src/engine/parser';
-import { renderInfo } from '../src/ui/info';
-import type { Plane } from '../src/engine/types';
+import { Game } from '../../src/engine/game';
+import { parseLevel } from '../../src/engine/parser';
+import { formatPlaneLine, renderInfo } from '../../src/ui/info';
+import type { Plane } from '../../src/engine/types';
 
 const def = parseLevel(
   `update = 5; newplane = 1000; width = 20; height = 20;
@@ -64,5 +64,29 @@ describe('renderInfo', () => {
 
   it('renders an empty panel when no planes exist', () => {
     expect(render(new Game(def)).lines).toEqual(['']);
+  });
+});
+
+describe('formatPlaneLine', () => {
+  it('uses the prefix separator for an altitude target without a heading', () => {
+    const plane: Plane = {
+      id: 0,
+      kind: 'prop',
+      status: 'marked',
+      origType: 'exit',
+      origNo: 0,
+      destType: 'exit',
+      destNo: 0,
+      x: 1,
+      y: 1,
+      dir: 2,
+      heading: { kind: 'fixed', dir: 2 },
+      pending: null,
+      altitude: 7,
+      targetAltitude: 8,
+      fuel: 20,
+    };
+
+    expect(formatPlaneLine(plane)).toBe('A7 E0: ↑8');
   });
 });

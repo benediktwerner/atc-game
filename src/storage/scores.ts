@@ -6,6 +6,7 @@ export interface ScoreEntry {
   realTimeSec: number;
   dateISO: string;
 }
+
 export interface ScoreCandidate extends Omit<ScoreEntry, 'name' | 'dateISO'> {
   dateISO?: string;
 }
@@ -53,6 +54,7 @@ function valid(value: unknown): value is ScoreEntry {
     typeof (value as ScoreEntry).dateISO === 'string'
   );
 }
+
 export interface ScorePreview {
   /** The table as it would look with the candidate included. */
   scores: ScoreEntry[];

@@ -1,4 +1,4 @@
-import { formatTime } from '../../engine/format';
+import { formatTime } from '../format';
 import { html, setHtml, type Html } from '../html';
 import {
   lastName,
@@ -8,7 +8,7 @@ import {
   saveScore,
   type ScoreCandidate,
   type ScoreEntry,
-} from '../scores';
+} from '../../storage/scores';
 
 export interface ScoreScreenOptions {
   /** Already-composed result line, e.g. `Plane 'a' ran out of fuel.` */

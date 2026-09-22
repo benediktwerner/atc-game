@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { BUILTIN_LEVELS } from '../src/data';
-import { CommandEditor } from '../src/engine/commands';
-import { Game } from '../src/engine/game';
-import { parseLevel } from '../src/engine/parser';
-import type { Plane } from '../src/engine/types';
+import { BUILTIN_LEVELS } from '../../src/data';
+import { CommandEditor } from '../../src/engine/commands';
+import { Game } from '../../src/engine/game';
+import { parseLevel } from '../../src/engine/parser';
+import type { Plane } from '../../src/engine/types';
 
 const def = parseLevel(BUILTIN_LEVELS[0].source, 'default');
 

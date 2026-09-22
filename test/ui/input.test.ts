@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CommandEditor } from '../src/engine/commands';
-import { Game } from '../src/engine/game';
-import { parseLevel } from '../src/engine/parser';
-import { renderInput } from '../src/ui/input';
-import type { Plane } from '../src/engine/types';
+import { CommandEditor } from '../../src/engine/commands';
+import { Game } from '../../src/engine/game';
+import { parseLevel } from '../../src/engine/parser';
+import { renderInput } from '../../src/ui/input';
+import type { Plane } from '../../src/engine/types';
 
 const def = parseLevel(
   `update = 5; newplane = 1000; width = 20; height = 20;

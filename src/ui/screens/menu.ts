@@ -2,7 +2,7 @@ import { BUILTIN_LEVELS } from '../../data';
 import { parseLevel } from '../../engine/parser';
 import HELP from '../help.html?raw';
 import { html, raw, setHtml, type Html } from '../html';
-import { loadScores } from '../scores';
+import { loadScores } from '../../storage/scores';
 import { scoreTable } from './score';
 
 /** Start screen: title, level picker with its stats line, help and the score table. */
