@@ -22,7 +22,7 @@ export function formatPlaneLine(plane: Plane): string {
   return line;
 }
 
-export function timestr(seconds: number): string {
+export function formatTime(seconds: number): string {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor(seconds / 3600) % 24;
   const minutes = Math.floor(seconds / 60) % 60;

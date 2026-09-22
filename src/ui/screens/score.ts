@@ -1,4 +1,4 @@
-import { timestr } from '../../engine/format';
+import { formatTime } from '../../engine/format';
 import { html, setHtml, type Html } from '../html';
 import {
   lastName,
@@ -41,7 +41,7 @@ export function renderScoreScreen(
       <p class="summary">
         Planes safe: ${candidate.planes}<br />
         Time: ${candidate.ticks} updates<br />
-        Real time: ${timestr(candidate.realTimeSec)}
+        Real time: ${formatTime(candidate.realTimeSec)}
       </p>
       ${
         canSave
@@ -158,7 +158,7 @@ export function scoreTable(scores: ScoreEntry[], highlight = -1): Html {
             <td>${score.name}</td>
             <td>${score.level}</td>
             <td>${score.ticks}</td>
-            <td>${timestr(score.realTimeSec)}</td>
+            <td>${formatTime(score.realTimeSec)}</td>
             <td>${score.planes}</td>
           </tr>`,
       )}
