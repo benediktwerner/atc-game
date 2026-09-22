@@ -98,9 +98,11 @@ export class Game {
         : { type: 'airport' as const, no: destIndex - this.def.exits.length };
     let candidate: Omit<Plane, 'id'> | null = null;
     for (let attempt = 0; attempt < starts; attempt += 1) {
-      let originIndex: number;
-      do originIndex = this.random(starts);
-      while (originIndex === destIndex);
+      // Drawn from the `starts - 1` entries that are not the destination and then
+      // shifted back over it, so the pick is uniform and always terminates. A
+      // reject-and-redraw loop would spin forever on a degenerate injected `Rng`.
+      let originIndex = this.random(starts - 1);
+      if (originIndex >= destIndex) originIndex += 1;
       if (originIndex < this.def.exits.length) {
         const origin = this.def.exits[originIndex];
         const probe = { x: origin.x, y: origin.y, altitude: ENTRY_ALTITUDE };

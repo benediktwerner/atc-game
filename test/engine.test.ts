@@ -68,6 +68,29 @@ describe('path projection', () => {
   });
 });
 
+describe('spawning', () => {
+  const def = parseLevel(
+    `update = 5; newplane = 1000; width = 10; height = 8;
+     exit: ( 0 3 d ) ( 9 4 a );
+     airport: ( 6 5 w );`,
+    'spawn',
+  );
+
+  // The origin is drawn from every start except the destination. A reject-and-redraw
+  // loop never terminates when the injected rng keeps returning the same index.
+  it.each([0, 0.5, 0.999999])(
+    'picks an origin other than the destination with a constant rng (%s)',
+    (value) => {
+      const game = new Game(def, () => value);
+      game.addPlane();
+      const spawned = [...game.air, ...game.ground];
+      expect(spawned).toHaveLength(1);
+      const { origType, origNo, destType, destNo } = spawned[0];
+      expect(`${origType}${origNo}`).not.toBe(`${destType}${destNo}`);
+    },
+  );
+});
+
 describe('update', () => {
   const def = parseLevel(
     `update = 5; newplane = 1000; width = 10; height = 8;

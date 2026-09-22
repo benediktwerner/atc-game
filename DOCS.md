@@ -181,8 +181,10 @@ plane letter.
 
 A level needs at least two exits/airports. The plane kind (propeller or jet) and the
 destination are chosen at random over the combined exit+airport list; the origin is
-drawn at random from the same list, excluding the destination, and retried on failure
-up to `exits + airports` times.
+then drawn directly from the remaining entries — one of the `starts - 1` non-destination
+indices, shifted back over the destination — and the whole choice is retried on failure
+up to `exits + airports` times. Never redraw-until-different: that loop does not
+terminate for a degenerate injected `Rng`.
 
 - **Exit origin**: rejected if any airborne plane is within `SPAWN_CLEARANCE` of the
   exit at altitude 7. Accepted origins produce a plane at altitude 7 heading in the
@@ -235,8 +237,8 @@ turn-towards-target.
 Editing keys: **Backspace** removes one token, **Ctrl-U** clears the command line,
 **Return** on an empty line forces an immediate update and restarts the timer,
 **Space** advances one step without touching the command being typed, **Escape**
-pauses, and `?` shows context-sensitive help. An invalid keystroke flashes the input
-row; there is no audio.
+pauses, and `?` shows context-sensitive help. An invalid keystroke is silently
+ignored — there is no flash and no audio.
 
 ### 4.2 Command application
 
@@ -248,31 +250,45 @@ command silently cancelled a pending delayed turn.
 Mark/unmark/ignore write `status`; altitude commands write `targetAltitude`; heading
 commands write either `heading` (clearing `pending`) or `pending` when delayed.
 
+Per-token checks run as each fragment is read, but everything that depends on the
+command **as a whole** is deferred until Return, in `commitHeading`:
+
+- a turn-towards is measured from the delay beacon when the command is delayed, and
+  from the plane's own cell when it is not, so `Would already be there` cannot be
+  decided before it is known whether a delay suffix follows;
+- `Already going in that direction` compares against the direction on arrival at the
+  beacon for a delayed command, and against the plane's current `heading` for an
+  immediate one. It only fires when `pending` is already `null`, because an immediate
+  heading command that looks redundant is still the way to **cancel** a pending one.
+
+Nothing is written to the plane until every check has passed, so a rejected command
+never mutates state.
+
 ### 4.3 Error messages
 
 Validation failures print the message and underline the offending token with `^`.
 These strings are part of the contract and are asserted literally by tests:
 
-| message                                               | condition                                               |
-| ----------------------------------------------------- | ------------------------------------------------------- |
-| `Unknown Plane`                                       | the letter matches no plane in the air or on the ground |
-| `Planes at airports may not change direction`         | `t` on a plane at altitude 0                            |
-| `Planes cannot circle on the ground`                  | `c` on a plane at altitude 0                            |
-| `Cannot mark planes on the ground`                    | `m` on a plane at altitude 0                            |
-| `Cannot unmark planes on the ground`                  | `u` on a plane at altitude 0                            |
-| `Cannot ignore planes on the ground`                  | `i` on a plane at altitude 0                            |
-| `Already marked`                                      | `m` on an already marked plane                          |
-| `Already unmarked`                                    | `u` on an already unmarked plane                        |
-| `Already ignored`                                     | `i` on an already ignored plane                         |
-| `Already at that altitude`                            | target altitude equals current and commanded altitude   |
-| `Altitude not changed`                                | `ac0` or `ad0`                                          |
-| `Altitude would be too low`                           | relative descent below 0                                |
-| `Altitude would be too high`                          | relative climb above 9                                  |
-| `Unknown beacon` / `Unknown exit` / `Unknown airport` | target index not defined by the level                   |
-| `Plane is circling`                                   | delayed command on a circling plane                     |
-| `Beacon is not in flight path`                        | the projected path never reaches the beacon             |
-| `Would already be there`                              | delay beacon and turn-towards target are the same cell  |
-| `Already going in that direction`                     | the heading on arrival at the beacon already matches    |
+| message                                               | condition                                                |
+| ----------------------------------------------------- | -------------------------------------------------------- |
+| `Unknown Plane`                                       | the letter matches no plane in the air or on the ground  |
+| `Planes at airports may not change direction`         | `t` on a plane at altitude 0                             |
+| `Planes cannot circle on the ground`                  | `c` on a plane at altitude 0                             |
+| `Cannot mark planes on the ground`                    | `m` on a plane at altitude 0                             |
+| `Cannot unmark planes on the ground`                  | `u` on a plane at altitude 0                             |
+| `Cannot ignore planes on the ground`                  | `i` on a plane at altitude 0                             |
+| `Already marked`                                      | `m` on an already marked plane                           |
+| `Already unmarked`                                    | `u` on an already unmarked plane                         |
+| `Already ignored`                                     | `i` on an already ignored plane                          |
+| `Already at that altitude`                            | target altitude equals current and commanded altitude    |
+| `Altitude not changed`                                | `ac0` or `ad0`                                           |
+| `Altitude would be too low`                           | relative descent below 0                                 |
+| `Altitude would be too high`                          | relative climb above 9                                   |
+| `Unknown beacon` / `Unknown exit` / `Unknown airport` | target index not defined by the level                    |
+| `Plane is circling`                                   | delayed command on a circling plane                      |
+| `Beacon is not in flight path`                        | the projected path never reaches the beacon              |
+| `Would already be there`                              | the turn-towards target is the cell the turn starts from |
+| `Already going in that direction`                     | the commanded heading is the one already in effect       |
 
 ---
 
@@ -306,6 +322,8 @@ collected and reported as `"<name>": line <n>: <message>`:
 - `Bad direction for entrance at exit.` — the entry direction does not point inward
   for that edge or corner.
 - `Bad line endpoints.` — lines must be horizontal, vertical or exactly diagonal.
+- `Bad direction for airport.` — a runway must face north, south, east or west. The
+  radar draws a runway as a single arrow glyph and has none for a diagonal.
 - `Too many <exits|beacons|airports> (max 10).` — indices must stay a single digit so
   they remain addressable by the command grammar.
 - `Need at least 2 airports and/or exits.`
@@ -346,7 +364,10 @@ ignored plane with no detail shows `---------`, and an altitude change in progre
 appends ` ↑<n>` / ` ↓<n>`.
 
 The progress line is driven by the same code that arms the update timer, so a forced
-update and pause/resume keep it in step with the real interval.
+update and pause/resume keep it in step with the real interval. Starting a level
+spawns the first plane, renders the opening position and only then arms the clock, so
+the board is visible for a full interval before the first update — do not tick
+immediately on start.
 
 The panel is exactly as tall as the radar beside it — `ui/app.ts` sets a
 `--radar-rows` custom property from the level's `height` — and scrolls when there are
@@ -461,19 +482,26 @@ silently revert any of them.
 - `---- more ----` info-panel truncation, replaced by a scrollable panel.
 - The shared score file, `host` column, file locking and setgid handling, replaced by
   `localStorage`.
+- The terminal bell on an invalid keystroke. Invalid input is silently ignored, with
+  no visual substitute, so `CommandEditor.feed` only reports whether the keystroke
+  forced an update.
 
 ### 8.3 Features changed or added
 
 - Escape pauses the game and hides the board (§6.4).
 - The info panel always shows `Circle R` or `Circle L`.
-- Invalid keystrokes flash the input row instead of ringing the terminal bell.
 - New error `Plane is circling`: a circling plane's path is a closed loop, so it can
   never reach a distant beacon, and a misleading "not in flight path" is avoided.
-- `Already going in that direction` compares against the direction the plane will have
-  **on arrival at the beacon**, not its direction when the command is typed.
-- In-progress altitude changes are visible in the info panel and on the radar; the
-  original showed only the current altitude, so a climb, a descent and a ground plane
-  already cleared for take-off were indistinguishable from an idle plane.
+- `Would already be there` and `Already going in that direction` also reject the
+  immediate forms of a turn, not just the delayed ones (§4.2).
+- `Already going in that direction` compares against the heading the plane already
+  holds, not the direction it happens to be pointing in mid-turn, and for a delayed
+  command against the direction it will have **on arrival at the beacon**.
+- In-progress altitude changes are visible in the info panel; the original showed only
+  the current altitude, so a climb, a descent and a ground plane already cleared for
+  take-off were indistinguishable from an idle plane. The radar still shows only the
+  current altitude.
+- Airports may only face north, south, east or west (§5).
 - Score-table semantics are simplified (§6.4).
 - Durations always include a minute field. The original's `timestr` omitted it below
   one minute and rendered zero as an empty string, so a short game showed `:27` or

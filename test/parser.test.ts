@@ -68,6 +68,13 @@ line: [ ( 0 0 ) ( 2 1 ) ];
     );
   });
 
+  it('rejects a diagonal airport runway', () => {
+    const diagonal = VALID_LEVEL.replace('( 6 5 w )', '( 6 5 e )');
+    expect(() => parseLevel(diagonal, 'bad-airport')).toThrow(
+      '"bad-airport": line 8: Bad direction for airport.',
+    );
+  });
+
   it('enforces the addressable-entry limit', () => {
     const beacons = Array.from({ length: 11 }, () => '( 2 2 )').join(' ');
     const source = `${VALID_LEVEL}\nbeacon: ${beacons};`;

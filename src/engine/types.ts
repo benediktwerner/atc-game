@@ -1,4 +1,6 @@
 export type Dir = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+/** Runway headings. The radar has no glyph for a diagonal runway. */
+export type CardinalDir = 0 | 2 | 4 | 6;
 
 export interface LevelDef {
   name: string;
@@ -22,7 +24,7 @@ export interface Exit extends Point {
 }
 
 export interface Airport extends Point {
-  dir: Dir;
+  dir: CardinalDir;
 }
 
 export type Beacon = Point;

@@ -91,8 +91,10 @@ export class App {
     this.root.querySelector<HTMLButtonElement>('#pause')!.onclick = () =>
       this.pause();
     this.game.addPlane();
-    this.tick();
+    // Render the opening position and only then arm the clock, so the first update
+    // lands a full interval later instead of immediately.
     this.render();
+    this.scheduleTick();
     requestAnimationFrame(() => this.fitGameToViewport());
   }
 

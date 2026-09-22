@@ -2,6 +2,7 @@ import { dirFromKey } from './dir';
 import type {
   Airport,
   Beacon,
+  CardinalDir,
   Dir,
   Exit,
   LevelDef,
@@ -249,7 +250,7 @@ class LevelParser {
     const y = this.integer();
     const dir = this.direction();
     this.expect(')');
-    const airport = { x, y, dir };
+    const airport = { x, y, dir: this.cardinal(dir, line) };
     this.validateInteriorPoint(airport, line);
     this.addLimited(this.airports, airport, 'airports', line);
   }
@@ -288,6 +289,19 @@ class LevelParser {
       this.syntax(`expected a direction, found ${this.describe(this.current)}`);
     this.advance();
     return direction;
+  }
+
+  /**
+   * Runways may only face north, south, east or west: the radar draws them with a
+   * single arrow glyph, and a diagonal runway has none. The substituted value is
+   * never observed, because a recorded error stops `parse` from returning a level.
+   */
+  private cardinal(dir: Dir, line: number): CardinalDir {
+    if (dir % 2 !== 0) {
+      this.error(line, 'Bad direction for airport.');
+      return 0;
+    }
+    return dir as CardinalDir;
   }
 
   private validateInteriorPoint(point: Point, line: number): void {

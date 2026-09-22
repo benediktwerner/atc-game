@@ -1,7 +1,7 @@
 import { dirFromDxDy, dirFromKey, idFromLetter } from './dir';
 import type { Game } from './game';
 import { projectPath, MAX_ALTITUDE } from './game';
-import type { HeadingCmd, MarkStatus, Plane } from './types';
+import type { Dir, HeadingCmd, MarkStatus, Plane, Point } from './types';
 
 type StateId =
   | 'Start'
@@ -39,11 +39,19 @@ export interface Editor {
 interface Draft {
   plane: Plane | null;
   heading?: HeadingCmd;
-  delayBeacon?: number;
+  /** Fragment that chose the heading, so a whole-command error can point at it. */
+  headingIndex?: number;
   target?: { type: TargetType; index: number };
+  delay?: { beacon: number; index: number };
   altitude?: number;
   relDir?: 'up' | 'down';
   status?: MarkStatus;
+}
+
+/** A rejected command: the message to show and the fragment to underline. */
+interface CommandError {
+  message: string;
+  index: number;
 }
 
 const hints: Record<StateId, string> = {
@@ -82,7 +90,8 @@ export class CommandEditor {
     this.editor.errorText = '';
   }
 
-  feed(token: Token): 'accepted' | 'invalid' | 'forced-update' {
+  /** Invalid keystrokes are silently ignored; only a forced update is signalled. */
+  feed(token: Token): 'accepted' | 'forced-update' {
     if (token === '?') {
       this.editor.message = hints[this.editor.state];
       this.editor.caretUnder = null;
@@ -92,13 +101,16 @@ export class CommandEditor {
     this.editor.message = '';
     this.editor.caretUnder = null;
     this.editor.errorText = '';
-    if (token === 'BACKSPACE') return this.backspace() ? 'accepted' : 'invalid';
+    if (token === 'BACKSPACE') {
+      this.backspace();
+      return 'accepted';
+    }
     if (token === 'CTRL_U') {
       this.reset();
       return 'accepted';
     }
     const transition = this.transition(this.editor.state, token);
-    if (!transition) return 'invalid';
+    if (!transition) return 'accepted';
     const fragment: Frag = {
       text: transition.text,
       col: this.editor.col,
@@ -140,12 +152,11 @@ export class CommandEditor {
     this.editor.errorText = errorText;
   }
 
-  private backspace(): boolean {
+  private backspace(): void {
     const fragment = this.editor.frags.pop();
-    if (!fragment) return false;
+    if (!fragment) return;
     this.editor.state = fragment.state;
     this.editor.col = fragment.col;
-    return true;
   }
 
   private transition(
@@ -217,18 +228,18 @@ export class CommandEditor {
       return digit ? { state: 'End', text: ` ${token}000 feet` } : null;
     }
     if (state === 'AltRel')
-      return digit ? { state: 'End', text: ` ${token}000 ft` } : null;
+      return digit ? { state: 'End', text: ` ${token}000 feet` } : null;
     return state === 'End' && token === 'ENTER'
       ? { state: null, text: '' }
       : null;
   }
 
-  private apply(): { message: string; index: number } | null {
+  private apply(): CommandError | null {
     const draft: Draft = { plane: null };
     const states = this.editor.frags.map((fragment) => fragment.state);
     for (let i = 0; i < this.editor.frags.length; i += 1) {
       const fragment = this.editor.frags[i];
-      const error = this.action(fragment, states[i], draft);
+      const error = this.action(fragment, states[i], draft, i);
       if (error) return { message: error, index: i };
     }
     const plane = draft.plane;
@@ -236,18 +247,77 @@ export class CommandEditor {
     if (draft.status !== undefined) plane.status = draft.status;
     else if (draft.altitude !== undefined)
       plane.targetAltitude = draft.altitude;
-    else if (draft.heading !== undefined) {
-      if (draft.delayBeacon !== undefined)
-        plane.pending = { heading: draft.heading, beacon: draft.delayBeacon };
-      else {
-        plane.heading = draft.heading;
-        plane.pending = null;
-      }
+    else if (draft.heading !== undefined || draft.target !== undefined)
+      return this.commitHeading(plane, draft);
+    return null;
+  }
+
+  /**
+   * Resolves and commits a heading command. None of this can be validated as the
+   * fragments are typed: a turn-towards is measured from the delay beacon rather
+   * than from the plane, and the delay suffix only arrives at the end.
+   */
+  private commitHeading(plane: Plane, draft: Draft): CommandError | null {
+    const headingIndex = draft.headingIndex!;
+    let origin: Point = plane;
+    let arrivalDir: Dir | null = null;
+    if (draft.delay) {
+      const beacon = this.game.def.beacons[draft.delay.beacon];
+      if (plane.heading.kind === 'circle')
+        return { message: 'Plane is circling', index: draft.delay.index };
+      const arrival = projectPath(plane, this.game.def).find(
+        (step) => step.x === beacon.x && step.y === beacon.y,
+      );
+      if (!arrival)
+        return {
+          message: 'Beacon is not in flight path',
+          index: draft.delay.index,
+        };
+      origin = beacon;
+      arrivalDir = arrival.dir;
+    }
+    let heading: HeadingCmd;
+    if (draft.target) {
+      const point = this.targetList(draft.target.type)[draft.target.index];
+      const dx = point.x - origin.x;
+      const dy = point.y - origin.y;
+      if (dx === 0 && dy === 0)
+        return { message: 'Would already be there', index: headingIndex };
+      heading = { kind: 'fixed', dir: dirFromDxDy(dx, dy) };
+    } else heading = draft.heading!;
+    if (heading.kind === 'fixed') {
+      // An immediate command also clears any pending one, so it is only a no-op
+      // when the plane already holds the heading and has nothing left to cancel.
+      const current = draft.delay
+        ? arrivalDir
+        : plane.pending === null && plane.heading.kind === 'fixed'
+          ? plane.heading.dir
+          : null;
+      if (current === heading.dir)
+        return {
+          message: 'Already going in that direction',
+          index: headingIndex,
+        };
+    }
+    if (draft.delay) plane.pending = { heading, beacon: draft.delay.beacon };
+    else {
+      plane.heading = heading;
+      plane.pending = null;
     }
     return null;
   }
 
-  private action(fragment: Frag, state: StateId, draft: Draft): string | null {
+  private targetList(type: TargetType): readonly Point[] {
+    const { beacons, exits, airports } = this.game.def;
+    return type === 'beacon' ? beacons : type === 'exit' ? exits : airports;
+  }
+
+  private action(
+    fragment: Frag,
+    state: StateId,
+    draft: Draft,
+    index: number,
+  ): string | null {
     const token = fragment.ch;
     if (state === 'Start') {
       const id = idFromLetter(String(token));
@@ -266,6 +336,7 @@ export class CommandEditor {
       if (token === 'c') {
         if (plane.altitude === 0) return 'Planes cannot circle on the ground';
         draft.heading = { kind: 'circle', turn: 'cw' };
+        draft.headingIndex = index;
       }
       if (token === 'm') {
         if (plane.altitude === 0) return 'Cannot mark planes on the ground';
@@ -286,30 +357,24 @@ export class CommandEditor {
       state === 'Turn' &&
       typeof token === 'string' &&
       dirFromKey(token) !== null
-    )
+    ) {
       draft.heading = { kind: 'fixed', dir: dirFromKey(token)! };
-    else if (state === 'Towards') {
+      draft.headingIndex = index;
+    } else if (state === 'Towards') {
       const type =
         token === 'e' ? 'exit' : token === 'a' ? 'airport' : 'beacon';
       draft.target = { type, index: -1 };
     } else if (state === 'TowardsNum') {
-      const index = Number(token);
       const target = draft.target!;
-      const list =
-        target.type === 'beacon'
-          ? this.game.def.beacons
-          : target.type === 'exit'
-            ? this.game.def.exits
-            : this.game.def.airports;
-      if (index >= list.length) return `Unknown ${target.type}`;
-      target.index = index;
-      draft.heading = {
-        kind: 'fixed',
-        dir: dirFromDxDy(list[index].x - plane.x, list[index].y - plane.y),
-      };
-    } else if (state === 'Circle' && (token === 'l' || token === 'r'))
+      const targetIndex = Number(token);
+      if (targetIndex >= this.targetList(target.type).length)
+        return `Unknown ${target.type}`;
+      target.index = targetIndex;
+      draft.headingIndex = index;
+    } else if (state === 'Circle' && (token === 'l' || token === 'r')) {
       draft.heading = { kind: 'circle', turn: token === 'l' ? 'ccw' : 'cw' };
-    else if (state === 'Alt') {
+      draft.headingIndex = index;
+    } else if (state === 'Alt') {
       if (/^[0-9]$/.test(String(token))) {
         const altitude = Number(token);
         if (plane.altitude === altitude && plane.targetAltitude === altitude)
@@ -324,38 +389,10 @@ export class CommandEditor {
       if (altitude < 0) return 'Altitude would be too low';
       if (altitude > MAX_ALTITUDE) return 'Altitude would be too high';
       draft.altitude = altitude;
-    } else if (state === 'DelayNum')
-      return this.delayAtBeacon(plane, draft, Number(token));
-    return null;
-  }
-
-  private delayAtBeacon(
-    plane: Plane,
-    draft: Draft,
-    beaconNo: number,
-  ): string | null {
-    const beacon = this.game.def.beacons[beaconNo];
-    if (!beacon) return 'Unknown beacon';
-    if (plane.heading.kind === 'circle') return 'Plane is circling';
-    const arrival = projectPath(plane, this.game.def).find(
-      (step) => step.x === beacon.x && step.y === beacon.y,
-    );
-    if (!arrival) return 'Beacon is not in flight path';
-    draft.delayBeacon = beaconNo;
-    if (draft.target) {
-      const list =
-        draft.target.type === 'beacon'
-          ? this.game.def.beacons
-          : draft.target.type === 'exit'
-            ? this.game.def.exits
-            : this.game.def.airports;
-      const target = list[draft.target.index];
-      const dx = target.x - beacon.x;
-      const dy = target.y - beacon.y;
-      if (dx === 0 && dy === 0) return 'Would already be there';
-      const dir = dirFromDxDy(dx, dy);
-      if (dir === arrival.dir) return 'Already going in that direction';
-      draft.heading = { kind: 'fixed', dir };
+    } else if (state === 'DelayNum') {
+      const beacon = Number(token);
+      if (!this.game.def.beacons[beacon]) return 'Unknown beacon';
+      draft.delay = { beacon, index };
     }
     return null;
   }

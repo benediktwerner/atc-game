@@ -30,9 +30,9 @@ export function staticRadar(def: LevelDef): string[][] {
   def.exits.forEach((point, index) => {
     rows[point.y][point.x * 2] = String(index);
   });
-  const airportGlyphs = '^?>?v?<?';
+  const airportGlyphs = '^>v<';
   def.airports.forEach((point, index) => {
-    rows[point.y][point.x * 2] = airportGlyphs[point.dir];
+    rows[point.y][point.x * 2] = airportGlyphs[point.dir / 2];
     rows[point.y][point.x * 2 + 1] = String(index);
   });
   return rows;
