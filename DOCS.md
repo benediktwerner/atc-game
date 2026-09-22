@@ -472,8 +472,8 @@ npm install
 npm run dev                  # Vite dev server
 npm run build                # tsc --noEmit + static bundle -> dist/
 npm test                     # full test suite
-npx vitest run test/engine.test.ts                  # one file
-npx vitest run test/engine.test.ts -t "directions"  # one test by name
+npx vitest run test/engine/game.test.ts             # one file
+npx vitest run test/engine/game.test.ts -t "update"  # one test by name
 npx vitest                   # watch mode
 npm run format               # Prettier
 npm run format:check
