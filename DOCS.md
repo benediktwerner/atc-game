@@ -24,25 +24,42 @@ Two layers with a hard boundary:
   state + editor state**, re-run after every update and every keystroke. Do not
   introduce incremental "erase plane, move, redraw plane" rendering.
 
-| file                 | contains                                                          |
-| -------------------- | ----------------------------------------------------------------- |
-| `engine/types.ts`    | `Dir`, `LevelDef`, `Plane`, `HeadingCmd` and related domain types |
-| `engine/dir.ts`      | direction tables, `dirFromDxDy`, plane-letter conversions         |
-| `engine/rng.ts`      | `Rng` type and `randInt`                                          |
-| `engine/parser.ts`   | level-file lexer, parser and validator                            |
-| `engine/game.ts`     | `Game`: state, update loop, spawning, loss detection, turn tables |
-| `engine/commands.ts` | `CommandEditor`: command grammar, validation, application         |
-| `engine/format.ts`   | info-line and duration formatting                                 |
-| `ui/app.ts`          | wires `Game` to the DOM; owns the clock and screen lifecycle      |
-| `ui/radar.ts`        | static radar layer plus the span-grid renderer                    |
-| `ui/info.ts`         | plane info panel                                                  |
-| `ui/input.ts`        | input echo, error caret and message rows                          |
-| `ui/keyboard.ts`     | key event to engine token mapping                                 |
-| `ui/scores.ts`       | `localStorage` high-score table                                   |
-| `data/*.atc`         | the 15 built-in levels, imported with Vite's `?raw` suffix        |
+| file                  | contains                                                          |
+| --------------------- | ----------------------------------------------------------------- |
+| `engine/types.ts`     | `Dir`, `LevelDef`, `Plane`, `HeadingCmd` and related domain types |
+| `engine/dir.ts`       | direction tables, `dirFromDxDy`, plane-letter conversions         |
+| `engine/rng.ts`       | `Rng` type and `randInt`                                          |
+| `engine/parser.ts`    | level-file lexer, parser and validator                            |
+| `engine/game.ts`      | `Game`: state, update loop, spawning, loss detection, turn tables |
+| `engine/commands.ts`  | `CommandEditor`: command grammar, validation, application         |
+| `engine/format.ts`    | info-line and duration formatting                                 |
+| `ui/app.ts`           | screen lifecycle, the clock and keyboard routing                  |
+| `ui/screens/menu.ts`  | start screen: level picker, level stats, help, high scores        |
+| `ui/screens/game.ts`  | `GameScreen`: board markup, tick bar, pause overlay, fit-to-view  |
+| `ui/screens/score.ts` | game-over screen: result, save form, high-score table             |
+| `ui/html.ts`          | auto-escaping `html` tagged template and `setHtml`                |
+| `ui/help.html`        | help text for the start screen, imported with `?raw`              |
+| `ui/radar.ts`         | static radar layer plus the span-grid renderer                    |
+| `ui/info.ts`          | plane info panel                                                  |
+| `ui/input.ts`         | input echo, error caret and message rows                          |
+| `ui/keyboard.ts`      | key event to engine token mapping                                 |
+| `ui/scores.ts`        | `localStorage` high-score table                                   |
+| `data/*.atc`          | the 15 built-in levels, imported with Vite's `?raw` suffix        |
 
 `ui/app.ts` owns the clock: a self-chaining `setTimeout` (never `setInterval`), so a
-forced update and pause/resume can cleanly reset the interval.
+forced update and pause/resume can cleanly reset the interval. It holds no element
+references of its own; each screen module owns its markup and its lookups into it.
+
+**Markup convention.** All HTML is built with the `html` tagged template from
+`ui/html.ts` and installed with `setHtml`, which accepts only the `Html` values that
+tag produces — so a bare string can never reach `innerHTML`. Every interpolated value
+is escaped unless it is already `Html`; arrays are concatenated and
+`false`/`null`/`undefined` render as nothing, so a falsy condition before a nested
+`html` template yields a conditional fragment. `raw()` bypasses escaping and is only
+for markup bundled from a `.html` file. The tag is named `html` because Prettier
+formats template literals with that tag as real HTML, which is what keeps the markup
+readable and diffable in place. Longer prose lives in its own `.html` file imported
+with `?raw`.
 
 `src/data/*.atc` are **verbatim copies of the original BSD level files** and are
 parsed at runtime. Do not reformat them, "clean them up" or convert them to JSON; they
@@ -375,7 +392,7 @@ spawns the first plane, renders the opening position and only then arms the cloc
 the board is visible for a full interval before the first update — do not tick
 immediately on start.
 
-The panel is exactly as tall as the radar beside it — `ui/app.ts` sets a
+The panel is exactly as tall as the radar beside it — `ui/screens/game.ts` sets a
 `--radar-rows` custom property from the level's `height` — and scrolls when there are
 more planes than rows.
 

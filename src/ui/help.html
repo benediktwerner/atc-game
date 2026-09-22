@@ -1,0 +1,184 @@
+<section class="help">
+  <h2>How to play</h2>
+  <p>
+    Planes arrive from numbered exits and airports. Send each one to the
+    destination shown in the info panel (A = airport, E = exit): land at its
+    airport at altitude 0 flying along the runway, or leave through its exit at
+    altitude 9. Planes crash if they collide, run out of fuel, hit the ground or
+    leave the arena anywhere else.
+  </p>
+  <p>
+    On the radar a plane is its letter followed by its altitude. Capitals are
+    propeller planes, which move every other tick; lower case are jets, which
+    move every tick. In the info panel, "*" marks a plane low on fuel.
+  </p>
+  <details>
+    <summary>Commands and rules</summary>
+    <h3>Commands</h3>
+    <p>Type the plane's letter, then a command, then submit using Enter.</p>
+    <br />
+    <table>
+      <tr>
+        <td><code>t&lt;dir&gt;</code></td>
+        <td>turn to a direction</td>
+      </tr>
+      <tr>
+        <td><code>tt&lt;b|e|a&gt;&lt;n&gt;</code></td>
+        <td>turn towards beacon, exit or airport <code>n</code></td>
+      </tr>
+      <tr>
+        <td><code>c</code> / <code>cr</code> / <code>cl</code></td>
+        <td>circle clockwise, clockwise, counter-clockwise</td>
+      </tr>
+      <tr>
+        <td><code>a&lt;n&gt;</code></td>
+        <td>set target altitude to <code>n</code>000 feet</td>
+      </tr>
+      <tr>
+        <td><code>ac&lt;n&gt;</code> / <code>a+&lt;n&gt;</code></td>
+        <td>climb <code>n</code>000 feet</td>
+      </tr>
+      <tr>
+        <td><code>ad&lt;n&gt;</code> / <code>a-&lt;n&gt;</code></td>
+        <td>descend <code>n</code>000 feet</td>
+      </tr>
+      <tr>
+        <td><code>m</code> / <code>u</code> / <code>i</code></td>
+        <td>mark, unmark or ignore the plane</td>
+      </tr>
+      <tr>
+        <td><code>ab&lt;n&gt;</code> / <code>@b&lt;n&gt;</code></td>
+        <td>
+          suffix on a turn or circle command: delay it until beacon
+          <code>n</code> is reached
+        </td>
+      </tr>
+    </table>
+    <p>
+      Directions are the eight keys around <code>s</code>, so they match their
+      position on any layout: <code>w</code> north, <code>e</code> north-east,
+      <code>d</code> east, <code>c</code> south-east, <code>x</code> south,
+      <code>z</code> south-west, <code>a</code> west, <code>q</code> north-west.
+      A plane on the ground only takes off once you give it an altitude.
+      <code>*</code> works instead of <code>b</code> for a beacon.
+    </p>
+    <br />
+    <table>
+      <tr>
+        <td><code>Enter</code></td>
+        <td>run the command; on an empty line, advance one step</td>
+      </tr>
+      <tr>
+        <td><code>Space</code></td>
+        <td>advance one step without touching the command</td>
+      </tr>
+      <tr>
+        <td><code>Backspace</code></td>
+        <td>undo the last key</td>
+      </tr>
+      <tr>
+        <td><code>Ctrl-U</code></td>
+        <td>clear the command</td>
+      </tr>
+      <tr>
+        <td><code>?</code></td>
+        <td>list the keys that are valid next</td>
+      </tr>
+      <tr>
+        <td><code>Esc</code></td>
+        <td>pause</td>
+      </tr>
+    </table>
+    <p>
+      Examples: <code>ba9</code> sends plane <code>b</code> to altitude 9,
+      <code>cttb0</code> turns plane <code>c</code> towards beacon 0,
+      <code>dtw@b1</code> makes plane <code>d</code> head north once it reaches
+      beacon 1.
+    </p>
+    <h3>Reading the radar</h3>
+    <table>
+      <tr>
+        <td><code>a7</code></td>
+        <td>
+          plane <code>a</code> flying at altitude 7; marked planes are
+          highlighted
+        </td>
+      </tr>
+      <tr>
+        <td><code>*0</code></td>
+        <td>beacon 0</td>
+      </tr>
+      <tr>
+        <td><code>0</code> on the border</td>
+        <td>exit 0</td>
+      </tr>
+      <tr>
+        <td>
+          <code>^0</code> / <code>&gt;0</code> / <code>v0</code> /
+          <code>&lt;0</code>
+        </td>
+        <td>airport 0; the arrow is the runway direction</td>
+      </tr>
+      <tr>
+        <td><code>+</code></td>
+        <td>an airway drawn on the map (visual only, for easier alignment)</td>
+      </tr>
+    </table>
+    <h3>Reading the info panel</h3>
+    <p>
+      A line such as <code>a7*E0: 90 @ B1 &uarr;9</code> reads: plane
+      <code>a</code> at altitude 7, low on fuel, bound for exit 0, currently
+      heading 90&deg;, with a command waiting at beacon 1, climbing to altitude
+      9. In place of a heading you may see <code>Circle R</code> or
+      <code>Circle L</code>, <code>Holding @ A0</code> for a plane still on the
+      ground, or <code>---------</code> for an unmarked or ignored plane.
+    </p>
+    <h3>Rules of flight</h3>
+    <table>
+      <tr>
+        <td>turning</td>
+        <td>at most 90&deg; per move, so a reversal takes two moves</td>
+      </tr>
+      <tr>
+        <td>altitude</td>
+        <td>1000 feet per move, until the target altitude is reached</td>
+      </tr>
+      <tr>
+        <td>collisions</td>
+        <td>
+          two planes collide when they are within one square and one altitude
+          level of each other
+        </td>
+      </tr>
+      <tr>
+        <td>fuel</td>
+        <td>
+          enough for width + height moves; <code>*</code> warns below 15 moves
+          left
+        </td>
+      </tr>
+      <tr>
+        <td>entering</td>
+        <td>
+          planes appear at an exit at altitude 7, or wait on an airport at
+          altitude 0
+        </td>
+      </tr>
+      <tr>
+        <td>delaying</td>
+        <td>
+          the beacon must lie on the plane&#39;s current path, and a circling
+          plane cannot take a delayed command
+        </td>
+      </tr>
+    </table>
+    <h3>Marking</h3>
+    <p>
+      Marked planes are highlighted on the radar and described in full. Unmarked
+      and ignored planes show <code>---------</code> instead, which keeps the
+      panel quiet for traffic you have already dealt with. An unmarked plane
+      marks itself again when it reaches the beacon of a delayed command; an
+      ignored plane never does.
+    </p>
+  </details>
+</section>
